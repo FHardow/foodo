@@ -1,4 +1,5 @@
 import '@testing-library/jest-dom'
+import { afterEach } from 'vitest'
 
 // jsdom 29 does not expose a functional localStorage in vitest's environment.
 // Provide a minimal in-memory implementation so zustand's persist middleware works.
@@ -18,3 +19,5 @@ Object.defineProperty(window, 'localStorage', {
   value: localStorageMock,
   writable: true,
 })
+
+afterEach(() => localStorage.clear())
