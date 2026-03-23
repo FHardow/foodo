@@ -5,8 +5,10 @@ import React from 'react'
 import { useBasket } from './useBasket'
 import { useBasketStore } from '../store/basket'
 import * as ordersApi from '../api/orders'
+import { toast } from 'sonner'
 
 vi.mock('../api/orders')
+vi.mock('sonner')
 
 function makeWrapper() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -115,5 +117,21 @@ describe('useBasket — confirm', () => {
 
     expect(returnedId).toBe('order-to-confirm')
     expect(useBasketStore.getState().basketOrderId).toBeNull()
+  })
+
+  it('shows toast on confirm failure, does not clear basket id', async () => {
+    useBasketStore.setState({ basketOrderId: 'order-to-confirm' })
+    vi.mocked(ordersApi.getOrder).mockResolvedValue(pendingOrder('order-to-confirm'))
+    vi.mocked(ordersApi.confirmOrder).mockRejectedValue(new Error('500'))
+
+    const { result } = renderHook(() => useBasket(), { wrapper: makeWrapper() })
+    await waitFor(() => expect(useBasketStore.getState().isValidating).toBe(false))
+
+    let returnedId: string | null = 'sentinel'
+    await act(async () => { returnedId = await result.current.confirm() })
+
+    expect(returnedId).toBeNull()
+    expect(useBasketStore.getState().basketOrderId).toBe('order-to-confirm')
+    expect(toast.error).toHaveBeenCalledWith('Something went wrong, try again')
   })
 })

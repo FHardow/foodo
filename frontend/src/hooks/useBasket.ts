@@ -66,10 +66,15 @@ export function useBasket() {
 
   async function confirm(): Promise<string | null> {
     if (!basketOrderId) return null
-    const order = await ordersApi.confirmOrder(basketOrderId)
-    const confirmedId = order.id
-    clearBasketOrderId()
-    return confirmedId
+    try {
+      const order = await ordersApi.confirmOrder(basketOrderId)
+      const confirmedId = order.id
+      clearBasketOrderId()
+      return confirmedId
+    } catch {
+      toast.error('Something went wrong, try again')
+      return null
+    }
   }
 
   return { basketOrderId, isValidating, addItem, removeItem, updateQuantity, confirm }
