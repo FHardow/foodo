@@ -2,3 +2,4 @@
 .superpowers/
 worktrees/
 frontend/.env
+**/node_modules
