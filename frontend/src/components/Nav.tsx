@@ -27,6 +27,7 @@ export default function Nav() {
         </Link>
         <Link
           to="/basket"
+          aria-label={`Basket${itemCount > 0 ? `, ${itemCount} item${itemCount !== 1 ? 's' : ''}` : ''}`}
           className="bg-[#5c3d1e] text-white rounded-full px-3 py-1 text-sm hover:bg-[#3d2b1a] transition-colors"
         >
           🛒{itemCount > 0 ? ` ${itemCount}` : ''}
