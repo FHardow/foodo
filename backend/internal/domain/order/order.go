@@ -31,49 +31,37 @@ func (i Item) TotalCents() int64 {
 }
 
 type Order struct {
-	id           ID
-	userID       uuid.UUID
-	status       Status
-	items        []Item
-	notes        string
-	deliveryDate time.Time
-	createdAt    time.Time
-	updatedAt    time.Time
+	id        ID
+	userID    uuid.UUID
+	status    Status
+	items     []Item
+	createdAt time.Time
+	updatedAt time.Time
 }
 
-func New(userID uuid.UUID, deliveryDate time.Time, notes string) (*Order, error) {
+func New(userID uuid.UUID) (*Order, error) {
 	if userID == uuid.Nil {
 		return nil, domerrors.BadRequest("user ID is required")
 	}
-	if deliveryDate.IsZero() {
-		return nil, domerrors.BadRequest("delivery date is required")
-	}
-	if deliveryDate.Before(time.Now().UTC()) {
-		return nil, domerrors.BadRequest("delivery date must be in the future")
-	}
 	now := time.Now().UTC()
 	return &Order{
-		id:           uuid.New(),
-		userID:       userID,
-		status:       StatusPending,
-		items:        nil,
-		notes:        notes,
-		deliveryDate: deliveryDate,
-		createdAt:    now,
-		updatedAt:    now,
+		id:        uuid.New(),
+		userID:    userID,
+		status:    StatusPending,
+		items:     nil,
+		createdAt: now,
+		updatedAt: now,
 	}, nil
 }
 
-func Reconstitute(id, userID uuid.UUID, status Status, items []Item, notes string, deliveryDate, createdAt, updatedAt time.Time) *Order {
+func Reconstitute(id, userID uuid.UUID, status Status, items []Item, createdAt, updatedAt time.Time) *Order {
 	return &Order{
-		id:           id,
-		userID:       userID,
-		status:       status,
-		items:        items,
-		notes:        notes,
-		deliveryDate: deliveryDate,
-		createdAt:    createdAt,
-		updatedAt:    updatedAt,
+		id:        id,
+		userID:    userID,
+		status:    status,
+		items:     items,
+		createdAt: createdAt,
+		updatedAt: updatedAt,
 	}
 }
 
@@ -81,8 +69,6 @@ func (o *Order) ID() ID               { return o.id }
 func (o *Order) UserID() uuid.UUID    { return o.userID }
 func (o *Order) Status() Status       { return o.status }
 func (o *Order) Items() []Item        { return o.items }
-func (o *Order) Notes() string        { return o.notes }
-func (o *Order) DeliveryDate() time.Time { return o.deliveryDate }
 func (o *Order) CreatedAt() time.Time { return o.createdAt }
 func (o *Order) UpdatedAt() time.Time { return o.updatedAt }
 
@@ -101,7 +87,6 @@ func (o *Order) AddItem(productID product.ID, productName string, quantity int, 
 	if quantity <= 0 {
 		return domerrors.BadRequest("quantity must be positive")
 	}
-	// merge with existing item if same product
 	for i, item := range o.items {
 		if item.ProductID == productID {
 			o.items[i].Quantity += quantity

@@ -2,7 +2,6 @@ package order
 
 import (
 	"context"
-	"time"
 
 	"github.com/fhardow/bread-order/internal/domain/product"
 	"github.com/google/uuid"
@@ -17,8 +16,8 @@ func NewService(repo Repository, productRepo product.Repository) *Service {
 	return &Service{repo: repo, productRepo: productRepo}
 }
 
-func (s *Service) Create(ctx context.Context, userID uuid.UUID, deliveryDate time.Time, notes string) (*Order, error) {
-	o, err := New(userID, deliveryDate, notes)
+func (s *Service) Create(ctx context.Context, userID uuid.UUID) (*Order, error) {
+	o, err := New(userID)
 	if err != nil {
 		return nil, err
 	}
