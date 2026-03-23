@@ -1,6 +1,5 @@
 import { useEffect } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { toast } from 'sonner'
 import { useBasketStore } from '../store/basket'
 import * as ordersApi from '../api/orders'
 import type { Product } from '../types'
@@ -66,15 +65,10 @@ export function useBasket() {
 
   async function confirm(): Promise<string | null> {
     if (!basketOrderId) return null
-    try {
-      const order = await ordersApi.confirmOrder(basketOrderId)
-      const confirmedId = order.id
-      clearBasketOrderId()
-      return confirmedId
-    } catch {
-      toast.error('Something went wrong, try again')
-      return null
-    }
+    const order = await ordersApi.confirmOrder(basketOrderId)
+    const confirmedId = order.id
+    clearBasketOrderId()
+    return confirmedId
   }
 
   return { basketOrderId, isValidating, addItem, removeItem, updateQuantity, confirm }

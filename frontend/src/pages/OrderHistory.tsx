@@ -4,13 +4,21 @@ import { getOrders } from '../api/orders'
 import StatusBadge from '../components/StatusBadge'
 
 export default function OrderHistory() {
-  const { data: orders, isLoading } = useQuery({
+  const { data: orders, isLoading, isError } = useQuery({
     queryKey: ['orders'],
     queryFn: getOrders,
   })
 
   if (isLoading) {
     return <div className="animate-pulse bg-white rounded-lg h-48 border border-[#e8ddd0]" />
+  }
+
+  if (isError) {
+    return (
+      <div className="text-center py-16">
+        <p className="text-[#8a6a50]">Could not load orders. Try again.</p>
+      </div>
+    )
   }
 
   const sorted = [...(orders ?? [])].sort(

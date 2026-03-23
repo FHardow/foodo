@@ -9,7 +9,7 @@ const TERMINAL = new Set<Order['status']>(['fulfilled', 'cancelled'])
 export default function OrderStatus() {
   const { id } = useParams<{ id: string }>()
 
-  const { data: order, isLoading } = useQuery({
+  const { data: order, isLoading, isError } = useQuery({
     queryKey: ['order', id],
     queryFn: () => getOrder(id!),
     enabled: !!id,
@@ -21,6 +21,14 @@ export default function OrderStatus() {
 
   if (isLoading) {
     return <div className="animate-pulse bg-white rounded-lg h-48 border border-[#e8ddd0]" />
+  }
+
+  if (isError) {
+    return (
+      <div className="text-center py-16">
+        <p className="text-[#8a6a50]">Could not load order. Try again.</p>
+      </div>
+    )
   }
 
   if (!order) {
