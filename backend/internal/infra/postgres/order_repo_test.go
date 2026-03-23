@@ -3,7 +3,6 @@ package postgres_test
 import (
 	"context"
 	"testing"
-	"time"
 
 	repopostgres "github.com/fhardow/bread-order/internal/infra/postgres"
 	domerrors "github.com/fhardow/bread-order/pkg/errors"
@@ -15,14 +14,10 @@ import (
 	"github.com/fhardow/bread-order/internal/domain/product"
 )
 
-func futureDelivery() time.Time {
-	return time.Now().UTC().Add(48 * time.Hour)
-}
-
 func saveOrder(t *testing.T, repo order.Repository, userID uuid.UUID) *order.Order {
 	t.Helper()
 	ctx := context.Background()
-	o, err := order.New(userID, futureDelivery(), "")
+	o, err := order.New(userID)
 	require.NoError(t, err)
 	require.NoError(t, repo.Save(ctx, o))
 	return o
@@ -52,7 +47,7 @@ func TestOrderRepo_FindByID_ItemsPreloaded(t *testing.T) {
 
 	productID := uuid.New()
 
-	o, err := order.New(uuid.New(), futureDelivery(), "ring bell")
+	o, err := order.New(uuid.New())
 	require.NoError(t, err)
 	require.NoError(t, o.AddItem(product.ID(productID), "Sourdough", 3, 450))
 	require.NoError(t, repo.Save(ctx, o))
@@ -111,7 +106,7 @@ func TestOrderRepo_Save_UpdatesStatusAndItems(t *testing.T) {
 	ctx := context.Background()
 
 	productID := uuid.New()
-	o, err := order.New(uuid.New(), futureDelivery(), "")
+	o, err := order.New(uuid.New())
 	require.NoError(t, err)
 	require.NoError(t, o.AddItem(product.ID(productID), "Rye", 2, 300))
 	require.NoError(t, repo.Save(ctx, o))
@@ -145,7 +140,7 @@ func TestOrderRepo_Delete_CascadesItems(t *testing.T) {
 	ctx := context.Background()
 
 	productID := uuid.New()
-	o, err := order.New(uuid.New(), futureDelivery(), "")
+	o, err := order.New(uuid.New())
 	require.NoError(t, err)
 	require.NoError(t, o.AddItem(product.ID(productID), "Sourdough", 1, 450))
 	require.NoError(t, repo.Save(ctx, o))
