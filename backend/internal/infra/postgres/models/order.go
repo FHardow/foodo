@@ -3,13 +3,11 @@ package models
 import "time"
 
 type Order struct {
-	ID           string      `gorm:"primaryKey;type:uuid"`
-	UserID       string      `gorm:"not null;index;type:uuid"`
-	Status       string      `gorm:"not null"`
-	Notes        string
-	DeliveryDate time.Time   `gorm:"not null"`
-	CreatedAt    time.Time   `gorm:"not null"`
-	UpdatedAt    time.Time   `gorm:"not null"`
+	ID        string    `gorm:"primaryKey;type:uuid"`
+	UserID    string    `gorm:"not null;index;type:uuid"`
+	Status    string    `gorm:"not null"`
+	CreatedAt time.Time `gorm:"not null"`
+	UpdatedAt time.Time `gorm:"not null"`
 
 	Items []OrderItem `gorm:"foreignKey:OrderID;constraint:OnDelete:CASCADE"`
 }

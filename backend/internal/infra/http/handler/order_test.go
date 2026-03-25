@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 
 	"github.com/fhardow/bread-order/internal/domain/order"
 	"github.com/fhardow/bread-order/internal/domain/product"
@@ -49,11 +48,8 @@ func seedProductInRepo(t *testing.T, repo *mock.ProductRepo) string {
 // createOrderViaHTTP creates an order through the handler and returns the response body map.
 func createOrderViaHTTP(t *testing.T, router *gin.Engine, userID string) map[string]any {
 	t.Helper()
-	delivery := time.Now().UTC().Add(48 * time.Hour).Format(time.RFC3339)
 	w := postJSON(router, "/orders", map[string]any{
-		"user_id":       userID,
-		"delivery_date": delivery,
-		"notes":         "ring bell",
+		"user_id": userID,
 	})
 	require.Equal(t, http.StatusCreated, w.Code, "create order failed: %s", w.Body.String())
 	var resp map[string]any
@@ -89,29 +85,14 @@ func TestOrderHandler_Create_Success(t *testing.T) {
 
 func TestOrderHandler_Create_MissingUserID(t *testing.T) {
 	router := setupOrderRouter(mock.NewOrderRepo(), mock.NewProductRepo())
-
-	w := postJSON(router, "/orders", map[string]any{
-		"delivery_date": time.Now().UTC().Add(48 * time.Hour).Format(time.RFC3339),
-	})
+	w := postJSON(router, "/orders", map[string]any{})
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
 
 func TestOrderHandler_Create_InvalidUserID(t *testing.T) {
 	router := setupOrderRouter(mock.NewOrderRepo(), mock.NewProductRepo())
-
 	w := postJSON(router, "/orders", map[string]any{
-		"user_id":       "not-a-uuid",
-		"delivery_date": time.Now().UTC().Add(48 * time.Hour).Format(time.RFC3339),
-	})
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-}
-
-func TestOrderHandler_Create_PastDeliveryDate(t *testing.T) {
-	router := setupOrderRouter(mock.NewOrderRepo(), mock.NewProductRepo())
-
-	w := postJSON(router, "/orders", map[string]any{
-		"user_id":       uuid.New().String(),
-		"delivery_date": time.Now().UTC().Add(-24 * time.Hour).Format(time.RFC3339),
+		"user_id": "not-a-uuid",
 	})
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 }

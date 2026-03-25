@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"testing"
-	"time"
 
 	"github.com/fhardow/bread-order/internal/domain/order"
 	"github.com/fhardow/bread-order/internal/domain/product"
@@ -33,7 +32,7 @@ func seededProduct(t *testing.T, repo *mock.ProductRepo, available bool) product
 
 func createOrder(t *testing.T, svc *order.Service, userID uuid.UUID) *order.Order {
 	t.Helper()
-	o, err := svc.Create(context.Background(), userID, time.Now().UTC().Add(48*time.Hour), "")
+	o, err := svc.Create(context.Background(), userID)
 	require.NoError(t, err)
 	return o
 }
@@ -48,9 +47,8 @@ func TestOrderService_Create_Success(t *testing.T) {
 	svc := newOrderService(oRepo, pRepo)
 
 	userID := uuid.New()
-	delivery := time.Now().UTC().Add(48 * time.Hour)
 
-	o, err := svc.Create(context.Background(), userID, delivery, "ring bell")
+	o, err := svc.Create(context.Background(), userID)
 	require.NoError(t, err)
 	require.NotNil(t, o)
 	assert.Equal(t, order.StatusPending, o.Status())
@@ -67,7 +65,7 @@ func TestOrderService_Create_ValidationError(t *testing.T) {
 	pRepo := mock.NewProductRepo()
 	svc := newOrderService(oRepo, pRepo)
 
-	_, err := svc.Create(context.Background(), uuid.Nil, time.Now().UTC().Add(time.Hour), "")
+	_, err := svc.Create(context.Background(), uuid.Nil)
 	require.Error(t, err)
 	assert.True(t, domerrors.Is(err, domerrors.ErrBadRequest))
 }
@@ -78,7 +76,7 @@ func TestOrderService_Create_SaveError(t *testing.T) {
 	pRepo := mock.NewProductRepo()
 	svc := newOrderService(oRepo, pRepo)
 
-	_, err := svc.Create(context.Background(), uuid.New(), time.Now().UTC().Add(time.Hour), "")
+	_, err := svc.Create(context.Background(), uuid.New())
 	require.Error(t, err)
 	assert.Equal(t, "db write failed", err.Error())
 }

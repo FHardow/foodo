@@ -95,7 +95,7 @@ func orderToDomain(m *models.Order) (*order.Order, error) {
 			UnitPriceCents: mi.UnitPriceCents,
 		})
 	}
-	return order.Reconstitute(id, userID, order.Status(m.Status), items, m.Notes, m.DeliveryDate, m.CreatedAt, m.UpdatedAt), nil
+	return order.Reconstitute(id, userID, order.Status(m.Status), items, m.CreatedAt, m.UpdatedAt), nil
 }
 
 func ordersSliceToDomain(ms []models.Order) ([]*order.Order, error) {
@@ -123,13 +123,11 @@ func orderToModel(o *order.Order) models.Order {
 		})
 	}
 	return models.Order{
-		ID:           o.ID().String(),
-		UserID:       o.UserID().String(),
-		Status:       string(o.Status()),
-		Notes:        o.Notes(),
-		DeliveryDate: o.DeliveryDate(),
-		CreatedAt:    o.CreatedAt(),
-		UpdatedAt:    o.UpdatedAt(),
-		Items:        items,
+		ID:        o.ID().String(),
+		UserID:    o.UserID().String(),
+		Status:    string(o.Status()),
+		CreatedAt: o.CreatedAt(),
+		UpdatedAt: o.UpdatedAt(),
+		Items:     items,
 	}
 }

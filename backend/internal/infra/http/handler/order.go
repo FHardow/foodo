@@ -28,15 +28,13 @@ type orderItemResponse struct {
 }
 
 type orderResponse struct {
-	ID           string              `json:"id"`
-	UserID       string              `json:"user_id"`
-	Status       string              `json:"status"`
-	Notes        string              `json:"notes"`
-	DeliveryDate time.Time           `json:"delivery_date"`
-	Items        []orderItemResponse `json:"items"`
-	TotalCents   int64               `json:"total_cents"`
-	CreatedAt    time.Time           `json:"created_at"`
-	UpdatedAt    time.Time           `json:"updated_at"`
+	ID         string              `json:"id"`
+	UserID     string              `json:"user_id"`
+	Status     string              `json:"status"`
+	Items      []orderItemResponse `json:"items"`
+	TotalCents int64               `json:"total_cents"`
+	CreatedAt  time.Time           `json:"created_at"`
+	UpdatedAt  time.Time           `json:"updated_at"`
 }
 
 func toOrderResponse(o *order.Order) orderResponse {
@@ -51,23 +49,19 @@ func toOrderResponse(o *order.Order) orderResponse {
 		})
 	}
 	return orderResponse{
-		ID:           o.ID().String(),
-		UserID:       o.UserID().String(),
-		Status:       string(o.Status()),
-		Notes:        o.Notes(),
-		DeliveryDate: o.DeliveryDate(),
-		Items:        items,
-		TotalCents:   o.TotalCents(),
-		CreatedAt:    o.CreatedAt(),
-		UpdatedAt:    o.UpdatedAt(),
+		ID:         o.ID().String(),
+		UserID:     o.UserID().String(),
+		Status:     string(o.Status()),
+		Items:      items,
+		TotalCents: o.TotalCents(),
+		CreatedAt:  o.CreatedAt(),
+		UpdatedAt:  o.UpdatedAt(),
 	}
 }
 
 func (h *OrderHandler) Create(c *gin.Context) {
 	var req struct {
-		UserID       string    `json:"user_id"       binding:"required"`
-		DeliveryDate time.Time `json:"delivery_date" binding:"required"`
-		Notes        string    `json:"notes"`
+		UserID string `json:"user_id" binding:"required"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		respond.Error(c, domerrors.BadRequest("%s", err.Error()))
@@ -78,7 +72,7 @@ func (h *OrderHandler) Create(c *gin.Context) {
 		respond.Error(c, domerrors.BadRequest("invalid user ID"))
 		return
 	}
-	o, err := h.svc.Create(c.Request.Context(), userID, req.DeliveryDate, req.Notes)
+	o, err := h.svc.Create(c.Request.Context(), userID)
 	if err != nil {
 		respond.Error(c, err)
 		return

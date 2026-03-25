@@ -1,3 +1,6 @@
+-include .env
+export
+
 .PHONY: run build tidy migrate-up migrate-down lint test
 
 run:

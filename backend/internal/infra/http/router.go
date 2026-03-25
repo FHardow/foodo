@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/fhardow/bread-order/internal/infra/http/handler"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
@@ -14,6 +15,11 @@ func NewRouter(
 ) http.Handler {
 	r := gin.New()
 	r.Use(gin.Logger(), gin.Recovery())
+	r.Use(cors.New(cors.Config{
+		AllowOrigins: []string{"http://localhost:5173"},
+		AllowMethods: []string{"GET", "POST", "PUT", "PATCH", "DELETE"},
+		AllowHeaders: []string{"Content-Type"},
+	}))
 
 	v1 := r.Group("/api/v1")
 	{
