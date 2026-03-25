@@ -35,6 +35,11 @@ func main() {
 		os.Exit(1)
 	}
 
+	if err := postgres.Migrate(db); err != nil {
+		log.Error("failed to run migrations", "err", err)
+		os.Exit(1)
+	}
+
 	// Repositories
 	userRepo    := postgres.NewUserRepo(db)
 	productRepo := postgres.NewProductRepo(db)
