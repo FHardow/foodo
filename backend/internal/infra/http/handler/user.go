@@ -24,6 +24,7 @@ type userResponse struct {
 	Name      string    `json:"name"`
 	Email     string    `json:"email"`
 	Phone     string    `json:"phone"`
+	Role      string    `json:"role"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 }
@@ -34,6 +35,7 @@ func toUserResponse(u *user.User) userResponse {
 		Name:      u.Name(),
 		Email:     u.Email(),
 		Phone:     u.Phone(),
+		Role:      string(u.Role()),
 		CreatedAt: u.CreatedAt(),
 		UpdatedAt: u.UpdatedAt(),
 	}
