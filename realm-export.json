@@ -1,0 +1,65 @@
+{
+  "realm": "bread-order",
+  "enabled": true,
+  "displayName": "Bread Order",
+  "sslRequired": "external",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": true,
+  "editUsernameAllowed": false,
+  "bruteForceProtected": true,
+  "clients": [
+    {
+      "clientId": "bread-order-app",
+      "name": "Bread Order App",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": [
+        "http://localhost:5173/*",
+        "https://server:*/*"
+      ],
+      "webOrigins": [
+        "http://localhost:5173",
+        "https://server:*"
+      ],
+      "protocol": "openid-connect",
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      }
+    }
+  ],
+  "roles": {
+    "realm": [
+      {
+        "name": "user",
+        "description": "Regular application user"
+      },
+      {
+        "name": "admin",
+        "description": "Application administrator"
+      }
+    ]
+  },
+  "defaultRoles": ["user"],
+  "users": [
+    {
+      "username": "admin",
+      "email": "admin@bread-order.local",
+      "firstName": "Admin",
+      "lastName": "User",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "admin",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["user", "admin"]
+    }
+  ]
+}

@@ -1,9 +1,11 @@
 package http
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/fhardow/bread-order/internal/infra/http/handler"
+	"github.com/fhardow/bread-order/internal/infra/http/middleware"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
@@ -12,16 +14,21 @@ func NewRouter(
 	users *handler.UserHandler,
 	products *handler.ProductHandler,
 	orders *handler.OrderHandler,
+	keycloakURL string,
+	keycloakRealm string,
 ) http.Handler {
 	r := gin.New()
 	r.Use(gin.Logger(), gin.Recovery())
 	r.Use(cors.New(cors.Config{
 		AllowOrigins: []string{"http://localhost:5173"},
 		AllowMethods: []string{"GET", "POST", "PUT", "PATCH", "DELETE"},
-		AllowHeaders: []string{"Content-Type"},
+		AllowHeaders: []string{"Content-Type", "Authorization"},
 	}))
 
+	jwksURL := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/certs", keycloakURL, keycloakRealm)
+
 	v1 := r.Group("/api/v1")
+	v1.Use(middleware.JWTAuth(jwksURL))
 	{
 		u := v1.Group("/users")
 		u.GET("", users.List)

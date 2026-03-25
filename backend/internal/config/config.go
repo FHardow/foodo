@@ -6,15 +6,19 @@ import (
 )
 
 type Config struct {
-	Env     string
-	Port    string
-	DSN     string
+	Env            string
+	Port           string
+	DSN            string
+	KeycloakURL    string
+	KeycloakRealm  string
 }
 
 func Load() (*Config, error) {
 	cfg := &Config{
-		Env:  getEnv("ENV", "development"),
-		Port: getEnv("PORT", "8080"),
+		Env:           getEnv("ENV", "development"),
+		Port:          getEnv("PORT", "8080"),
+		KeycloakURL:   getEnv("KEYCLOAK_URL", "http://localhost:8180"),
+		KeycloakRealm: getEnv("KEYCLOAK_REALM", "bread-order"),
 	}
 
 	cfg.DSN = buildDSN()

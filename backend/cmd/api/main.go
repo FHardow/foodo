@@ -55,7 +55,7 @@ func main() {
 	productHandler := handler.NewProductHandler(productSvc)
 	orderHandler   := handler.NewOrderHandler(orderSvc)
 
-	router := apphttp.NewRouter(userHandler, productHandler, orderHandler)
+	router := apphttp.NewRouter(userHandler, productHandler, orderHandler, cfg.KeycloakURL, cfg.KeycloakRealm)
 	srv    := apphttp.NewServer(cfg.Port, router, log)
 
 	// Graceful shutdown
