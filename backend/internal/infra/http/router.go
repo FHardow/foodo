@@ -1,6 +1,7 @@
 package http
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/fhardow/bread-order/internal/domain/user"
@@ -14,6 +15,8 @@ func NewRouter(
 	users *handler.UserHandler,
 	products *handler.ProductHandler,
 	orders *handler.OrderHandler,
+	keycloakURL string,
+	keycloakRealm string,
 	userSvc *user.Service,
 ) http.Handler {
 	r := gin.New()
@@ -21,12 +24,14 @@ func NewRouter(
 	r.Use(cors.New(cors.Config{
 		AllowOrigins: []string{"http://localhost:5173"},
 		AllowMethods: []string{"GET", "POST", "PUT", "PATCH", "DELETE"},
-		AllowHeaders: []string{"Content-Type", "X-User-ID"},
+		AllowHeaders: []string{"Content-Type", "Authorization"},
 	}))
 
+	jwksURL := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/certs", keycloakURL, keycloakRealm)
 	ownerOnly := middleware.RequireOwner(userSvc)
 
 	v1 := r.Group("/api/v1")
+	v1.Use(middleware.JWTAuth(jwksURL))
 	{
 		u := v1.Group("/users")
 		u.GET("", users.List)

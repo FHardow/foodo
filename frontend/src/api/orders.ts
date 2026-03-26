@@ -1,18 +1,18 @@
 import { apiFetch } from './client'
-import { CURRENT_USER_ID } from '../constants'
+import keycloak from '../auth/keycloak'
 import type { Order } from '../types'
 
 export const createOrder = () =>
   apiFetch<Order>('/api/v1/orders', {
     method: 'POST',
-    body: JSON.stringify({ user_id: CURRENT_USER_ID }),
+    body: JSON.stringify({ user_id: keycloak.subject }),
   })
 
 export const getOrder = (id: string) =>
   apiFetch<Order>(`/api/v1/orders/${id}`)
 
 export const getOrders = () =>
-  apiFetch<Order[]>(`/api/v1/orders?user_id=${CURRENT_USER_ID}`)
+  apiFetch<Order[]>(`/api/v1/orders?user_id=${keycloak.subject}`)
 
 export const addItem = (orderId: string, productId: string, quantity: number) =>
   apiFetch<Order>(`/api/v1/orders/${orderId}/items`, {
