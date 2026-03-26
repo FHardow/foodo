@@ -6,6 +6,7 @@ export interface Product {
   description: string
   unit: string
   available: boolean
+  image_url?: string
 }
 
 export interface OrderItem {
