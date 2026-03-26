@@ -71,7 +71,7 @@ func userToDomain(m *models.User) (*user.User, error) {
 	if err != nil {
 		return nil, err
 	}
-	return user.Reconstitute(id, m.Name, m.Email, m.Phone, m.CreatedAt, m.UpdatedAt), nil
+	return user.Reconstitute(id, m.Name, m.Email, m.Phone, user.Role(m.Role), m.CreatedAt, m.UpdatedAt), nil
 }
 
 func userToModel(u *user.User) models.User {
@@ -80,6 +80,7 @@ func userToModel(u *user.User) models.User {
 		Name:      u.Name(),
 		Email:     u.Email(),
 		Phone:     u.Phone(),
+		Role:      string(u.Role()),
 		CreatedAt: u.CreatedAt(),
 		UpdatedAt: u.UpdatedAt(),
 	}

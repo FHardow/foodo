@@ -3,7 +3,9 @@ package http
 import (
 	"net/http"
 
+	"github.com/fhardow/bread-order/internal/domain/user"
 	"github.com/fhardow/bread-order/internal/infra/http/handler"
+	"github.com/fhardow/bread-order/internal/infra/http/middleware"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
@@ -12,14 +14,17 @@ func NewRouter(
 	users *handler.UserHandler,
 	products *handler.ProductHandler,
 	orders *handler.OrderHandler,
+	userSvc *user.Service,
 ) http.Handler {
 	r := gin.New()
 	r.Use(gin.Logger(), gin.Recovery())
 	r.Use(cors.New(cors.Config{
 		AllowOrigins: []string{"http://localhost:5173"},
 		AllowMethods: []string{"GET", "POST", "PUT", "PATCH", "DELETE"},
-		AllowHeaders: []string{"Content-Type"},
+		AllowHeaders: []string{"Content-Type", "X-User-ID"},
 	}))
+
+	ownerOnly := middleware.RequireOwner(userSvc)
 
 	v1 := r.Group("/api/v1")
 	{
@@ -31,11 +36,11 @@ func NewRouter(
 
 		p := v1.Group("/products")
 		p.GET("", products.List)
-		p.POST("", products.Create)
 		p.GET("/:id", products.GetByID)
-		p.PUT("/:id", products.Update)
-		p.PATCH("/:id/availability", products.SetAvailable)
-		p.DELETE("/:id", products.Delete)
+		p.POST("", ownerOnly, products.Create)
+		p.PUT("/:id", ownerOnly, products.Update)
+		p.PATCH("/:id/availability", ownerOnly, products.SetAvailable)
+		p.DELETE("/:id", ownerOnly, products.Delete)
 
 		o := v1.Group("/orders")
 		o.GET("", orders.List)
