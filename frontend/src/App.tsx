@@ -6,6 +6,7 @@ import Store from './pages/Store'
 import Basket from './pages/Basket'
 import OrderStatus from './pages/OrderStatus'
 import OrderHistory from './pages/OrderHistory'
+import AdminProducts from './pages/admin/Products'
 
 const queryClient = new QueryClient()
 
@@ -21,6 +22,7 @@ export default function App() {
               <Route path="/basket" element={<Basket />} />
               <Route path="/orders/:id" element={<OrderStatus />} />
               <Route path="/orders" element={<OrderHistory />} />
+              <Route path="/admin/products" element={<AdminProducts />} />
             </Routes>
           </main>
         </div>
