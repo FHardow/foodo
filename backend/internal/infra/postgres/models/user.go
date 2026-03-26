@@ -7,6 +7,7 @@ type User struct {
 	Name      string    `gorm:"not null"`
 	Email     string    `gorm:"uniqueIndex;not null"`
 	Phone     string
+	Role      string    `gorm:"not null;default:customer"`
 	CreatedAt time.Time `gorm:"not null"`
 	UpdatedAt time.Time `gorm:"not null"`
 }

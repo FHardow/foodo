@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/fhardow/bread-order/internal/domain/user"
 	"github.com/fhardow/bread-order/internal/infra/http/handler"
 	"github.com/fhardow/bread-order/internal/infra/http/middleware"
 	"github.com/gin-contrib/cors"
@@ -16,6 +17,7 @@ func NewRouter(
 	orders *handler.OrderHandler,
 	keycloakURL string,
 	keycloakRealm string,
+	userSvc *user.Service,
 ) http.Handler {
 	r := gin.New()
 	r.Use(gin.Logger(), gin.Recovery())
@@ -26,6 +28,7 @@ func NewRouter(
 	}))
 
 	jwksURL := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/certs", keycloakURL, keycloakRealm)
+	ownerOnly := middleware.RequireOwner(userSvc)
 
 	v1 := r.Group("/api/v1")
 	v1.Use(middleware.JWTAuth(jwksURL))
@@ -38,11 +41,11 @@ func NewRouter(
 
 		p := v1.Group("/products")
 		p.GET("", products.List)
-		p.POST("", products.Create)
 		p.GET("/:id", products.GetByID)
-		p.PUT("/:id", products.Update)
-		p.PATCH("/:id/availability", products.SetAvailable)
-		p.DELETE("/:id", products.Delete)
+		p.POST("", ownerOnly, products.Create)
+		p.PUT("/:id", ownerOnly, products.Update)
+		p.PATCH("/:id/availability", ownerOnly, products.SetAvailable)
+		p.DELETE("/:id", ownerOnly, products.Delete)
 
 		o := v1.Group("/orders")
 		o.GET("", orders.List)
