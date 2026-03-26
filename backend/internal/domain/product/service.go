@@ -10,8 +10,8 @@ func NewService(repo Repository) *Service {
 	return &Service{repo: repo}
 }
 
-func (s *Service) Create(ctx context.Context, name, description string, priceCents int64, unit string) (*Product, error) {
-	p, err := New(name, description, priceCents, unit)
+func (s *Service) Create(ctx context.Context, name, description string, priceCents int64, unit string, available bool) (*Product, error) {
+	p, err := New(name, description, priceCents, unit, available)
 	if err != nil {
 		return nil, err
 	}
@@ -49,6 +49,18 @@ func (s *Service) SetAvailable(ctx context.Context, id ID, available bool) (*Pro
 		return nil, err
 	}
 	p.SetAvailable(available)
+	if err := s.repo.Save(ctx, p); err != nil {
+		return nil, err
+	}
+	return p, nil
+}
+
+func (s *Service) SetImageURL(ctx context.Context, id ID, imageURL string) (*Product, error) {
+	p, err := s.repo.FindByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	p.SetImageURL(imageURL)
 	if err := s.repo.Save(ctx, p); err != nil {
 		return nil, err
 	}
