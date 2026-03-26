@@ -22,11 +22,6 @@ export default function AdminProducts() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
 
-  if (!keycloak.hasRealmRole('owner')) {
-    navigate('/')
-    return null
-  }
-
   const { data: products = [], isLoading, isError } = useQuery({
     queryKey: ['products'],
     queryFn: getProducts,
@@ -57,6 +52,11 @@ export default function AdminProducts() {
     },
     onError: () => toast.error('Failed to delete product'),
   })
+
+  if (!keycloak.hasRealmRole('owner')) {
+    navigate('/')
+    return null
+  }
 
   const openCreate = () => {
     setEditing(null)
