@@ -14,9 +14,10 @@ import (
 	"github.com/fhardow/bread-order/internal/domain/order"
 	"github.com/fhardow/bread-order/internal/domain/product"
 	"github.com/fhardow/bread-order/internal/domain/user"
-	"github.com/fhardow/bread-order/internal/infra/postgres"
 	apphttp "github.com/fhardow/bread-order/internal/infra/http"
 	"github.com/fhardow/bread-order/internal/infra/http/handler"
+	"github.com/fhardow/bread-order/internal/infra/postgres"
+	"github.com/fhardow/bread-order/internal/infra/telegram"
 	"github.com/fhardow/bread-order/pkg/logger"
 )
 
@@ -52,10 +53,17 @@ func main() {
 	productRepo := postgres.NewProductRepo(db)
 	orderRepo   := postgres.NewOrderRepo(db)
 
+	// Telegram notifier (optional — only active when both env vars are set)
+	var orderNotifier order.Notifier
+	if cfg.TelegramBotToken != "" && cfg.TelegramChatID != "" {
+		orderNotifier = telegram.New(cfg.TelegramBotToken, cfg.TelegramChatID)
+		log.Info("telegram notifications enabled")
+	}
+
 	// Domain services
 	userSvc    := user.NewService(userRepo)
 	productSvc := product.NewService(productRepo)
-	orderSvc   := order.NewService(orderRepo, productRepo)
+	orderSvc   := order.NewService(orderRepo, productRepo, orderNotifier)
 
 	// HTTP handlers
 	userHandler    := handler.NewUserHandler(userSvc)

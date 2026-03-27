@@ -10,10 +10,11 @@ import (
 type Service struct {
 	repo        Repository
 	productRepo product.Repository
+	notifier    Notifier
 }
 
-func NewService(repo Repository, productRepo product.Repository) *Service {
-	return &Service{repo: repo, productRepo: productRepo}
+func NewService(repo Repository, productRepo product.Repository, notifier Notifier) *Service {
+	return &Service{repo: repo, productRepo: productRepo, notifier: notifier}
 }
 
 func (s *Service) Create(ctx context.Context, userID uuid.UUID) (*Order, error) {
@@ -23,6 +24,15 @@ func (s *Service) Create(ctx context.Context, userID uuid.UUID) (*Order, error) 
 	}
 	if err := s.repo.Save(ctx, o); err != nil {
 		return nil, err
+	}
+	if s.notifier != nil {
+		// Fire-and-forget: notification failure must not break order creation.
+		go func() {
+			if err := s.notifier.OrderCreated(context.Background(), o); err != nil {
+				// Errors are intentionally ignored here; add logging if desired.
+				_ = err
+			}
+		}()
 	}
 	return o, nil
 }
