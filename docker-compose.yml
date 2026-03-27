@@ -40,7 +40,14 @@ services:
       - traefik.http.routers.backend.entrypoints=websecure
       - traefik.http.routers.backend.tls.certresolver=letsencrypt
       - traefik.http.routers.backend.priority=10
+      - traefik.http.routers.uploads.rule=Host(`bread.${DOMAIN}`) && PathPrefix(`/uploads`)
+      - traefik.http.routers.uploads.entrypoints=websecure
+      - traefik.http.routers.uploads.tls.certresolver=letsencrypt
+      - traefik.http.routers.uploads.priority=10
+      - traefik.http.routers.uploads.service=backend
       - traefik.http.services.backend.loadbalancer.server.port=8080
+    volumes:
+      - uploads:/app/uploads
     networks:
       - traefik-public
       - internal
