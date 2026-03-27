@@ -19,6 +19,7 @@ type OrderItem struct {
 	OrderID        string    `gorm:"not null;index;type:uuid"`
 	ProductID      string    `gorm:"not null;type:uuid"`
 	ProductName    string    `gorm:"not null"`
+	Unit           string    `gorm:"not null;default:''"`
 	Quantity       int       `gorm:"not null"`
 	UnitPriceCents int64     `gorm:"not null"`
 	CreatedAt      time.Time `gorm:"not null"`

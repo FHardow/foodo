@@ -39,6 +39,7 @@ export default function Basket() {
     return <div className="animate-pulse bg-white rounded-lg h-48 border border-[#e8ddd0]" />
   }
 
+  // productMap used as fallback for items that may lack unit (e.g. older orders)
   const productMap = new Map(products?.map((p) => [p.id, p]) ?? [])
 
   async function handleConfirm() {
@@ -68,7 +69,7 @@ export default function Basket() {
       ) : (
         <ul className="space-y-4 mb-8">
           {order?.items.map((item) => {
-            const unit = productMap.get(item.product_id)?.unit
+            const unit = item.unit || productMap.get(item.product_id)?.unit
             return (
               <li
                 key={item.product_id}
@@ -76,7 +77,6 @@ export default function Basket() {
               >
                 <div className="flex-1">
                   <p className="font-medium text-[#3d2b1a]">{item.product_name}</p>
-                  {unit && <p className="text-sm text-[#8a6a50]">{unit}</p>}
                 </div>
                 <div className="flex items-center gap-2">
                   <button
@@ -89,7 +89,9 @@ export default function Basket() {
                   >
                     −
                   </button>
-                  <span className="w-6 text-center text-[#3d2b1a]">{item.quantity}</span>
+                  <span className="text-center text-[#3d2b1a] min-w-[3rem]">
+                    {unit ? `${unit} ${item.quantity}` : item.quantity}
+                  </span>
                   <button
                     onClick={() => updateQuantity(item.product_id, item.quantity + 1)}
                     className="w-7 h-7 rounded border border-[#e8ddd0] text-[#5c3d1e] hover:border-[#5c3d1e]"

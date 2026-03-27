@@ -279,12 +279,24 @@ export default function AdminProducts() {
                     className="w-16 h-16 object-cover rounded mb-2"
                   />
                 )}
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => setImageFile(e.target.files?.[0] ?? null)}
-                  className="text-sm text-[#8a6a50]"
-                />
+                <label className="inline-flex items-center gap-2 cursor-pointer border border-[#5c3d1e] text-[#5c3d1e] rounded px-3 py-1.5 text-sm hover:bg-[#5c3d1e] hover:text-white transition-colors">
+                  {imageFile ? imageFile.name : 'Choose image…'}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setImageFile(e.target.files?.[0] ?? null)}
+                    className="sr-only"
+                  />
+                </label>
+                {imageFile && (
+                  <button
+                    type="button"
+                    onClick={() => setImageFile(null)}
+                    className="ml-2 text-xs text-[#8a6a50] hover:text-red-500"
+                  >
+                    Remove
+                  </button>
+                )}
               </div>
               <div className="flex justify-end gap-3 pt-2">
                 <button

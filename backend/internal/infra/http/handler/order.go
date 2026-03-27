@@ -22,6 +22,7 @@ func NewOrderHandler(svc *order.Service) *OrderHandler {
 type orderItemResponse struct {
 	ProductID      string `json:"product_id"`
 	ProductName    string `json:"product_name"`
+	Unit           string `json:"unit"`
 	Quantity       int    `json:"quantity"`
 	UnitPriceCents int64  `json:"unit_price_cents"`
 	TotalCents     int64  `json:"total_cents"`
@@ -43,6 +44,7 @@ func toOrderResponse(o *order.Order) orderResponse {
 		items = append(items, orderItemResponse{
 			ProductID:      item.ProductID.String(),
 			ProductName:    item.ProductName,
+			Unit:           item.Unit,
 			Quantity:       item.Quantity,
 			UnitPriceCents: item.UnitPriceCents,
 			TotalCents:     item.TotalCents(),

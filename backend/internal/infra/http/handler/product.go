@@ -153,6 +153,11 @@ func (h *ProductHandler) Delete(c *gin.Context) {
 		respond.Error(c, err)
 		return
 	}
+	// Remove any uploaded image for this product.
+	existing, _ := filepath.Glob(filepath.Join(h.uploadsDir, id.String()+".*"))
+	for _, f := range existing {
+		os.Remove(f) //nolint:errcheck
+	}
 	c.Status(http.StatusNoContent)
 }
 

@@ -7,6 +7,9 @@ const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8080'
 export const getProducts = () =>
   apiFetch<Product[]>('/api/v1/products')
 
+export const getProduct = (id: string) =>
+  apiFetch<Product>(`/api/v1/products/${id}`)
+
 export interface ProductInput {
   name: string
   description: string

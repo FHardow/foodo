@@ -38,8 +38,8 @@
         "description": "Regular application user"
       },
       {
-        "name": "admin",
-        "description": "Application administrator"
+        "name": "owner",
+        "description": "Bread shop owner — can manage products"
       }
     ]
   },
@@ -59,7 +59,7 @@
           "temporary": false
         }
       ],
-      "realmRoles": ["user", "admin"]
+      "realmRoles": ["user", "owner"]
     }
   ]
 }
