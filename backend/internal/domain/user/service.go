@@ -4,6 +4,7 @@ import (
 	"context"
 
 	domerrors "github.com/fhardow/bread-order/pkg/errors"
+	"github.com/google/uuid"
 )
 
 type Service struct {
@@ -14,7 +15,7 @@ func NewService(repo Repository) *Service {
 	return &Service{repo: repo}
 }
 
-func (s *Service) Register(ctx context.Context, name, email, phone string) (*User, error) {
+func (s *Service) Register(ctx context.Context, id uuid.UUID, name, email, phone string) (*User, error) {
 	existing, err := s.repo.FindByEmail(ctx, email)
 	if err != nil && !domerrors.Is(err, domerrors.ErrNotFound) {
 		return nil, err
@@ -23,7 +24,7 @@ func (s *Service) Register(ctx context.Context, name, email, phone string) (*Use
 		return nil, domerrors.Conflict("user with email %q already exists", email)
 	}
 
-	u, err := New(name, email, phone)
+	u, err := New(id, name, email, phone)
 	if err != nil {
 		return nil, err
 	}

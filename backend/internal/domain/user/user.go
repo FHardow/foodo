@@ -26,7 +26,10 @@ type User struct {
 	updatedAt time.Time
 }
 
-func New(name, email, phone string) (*User, error) {
+func New(id uuid.UUID, name, email, phone string) (*User, error) {
+	if id == uuid.Nil {
+		return nil, domerrors.BadRequest("user ID is required")
+	}
 	if name == "" {
 		return nil, domerrors.BadRequest("name is required")
 	}
@@ -35,7 +38,7 @@ func New(name, email, phone string) (*User, error) {
 	}
 	now := time.Now().UTC()
 	return &User{
-		id:        uuid.New(),
+		id:        id,
 		name:      name,
 		email:     email,
 		phone:     phone,
