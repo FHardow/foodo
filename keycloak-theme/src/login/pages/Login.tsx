@@ -31,7 +31,7 @@ export default function Login({ kcContext }: Props) {
                     <input
                         id="username"
                         name="username"
-                        type="email"
+                        type="text"
                         autoComplete="email"
                         className="w-full bg-[#faf7f2] border border-[#e8ddd0] rounded-lg px-3 py-2 text-[#3d2b1a] text-sm focus:outline-none focus:ring-2 focus:ring-[#5c3d1e] focus:border-transparent"
                     />
