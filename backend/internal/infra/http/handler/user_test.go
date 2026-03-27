@@ -36,6 +36,7 @@ func setupUserRouter(repo *mock.UserRepo, authUserID string) (*gin.Engine, *hand
 	})
 	r.POST("/users", h.Register)
 	r.GET("/users", h.List)
+	r.GET("/users/me", h.Me)
 	r.GET("/users/:id", h.GetByID)
 	r.PUT("/users/:id", h.Update)
 
@@ -55,6 +56,7 @@ func setupUserRouterAsOwner(repo *mock.UserRepo, authUserID string) (*gin.Engine
 	})
 	r.POST("/users", h.Register)
 	r.GET("/users", h.List)
+	r.GET("/users/me", h.Me)
 	r.GET("/users/:id", h.GetByID)
 	r.PUT("/users/:id", h.Update)
 
@@ -156,6 +158,41 @@ func TestUserHandler_Register_MalformedJSON(t *testing.T) {
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+// ---------------------------------------------------------------------------
+// Me
+// ---------------------------------------------------------------------------
+
+func TestUserHandler_Me_Success(t *testing.T) {
+	authID := uuid.New().String()
+	router, _ := setupUserRouter(mock.NewUserRepo(), authID)
+
+	postJSON(router, "/users", map[string]any{"name": "Alice", "email": "alice@example.com"})
+
+	w := getRequest(router, "/users/me")
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var resp map[string]any
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	assert.Equal(t, authID, resp["id"])
+	assert.Equal(t, "Alice", resp["name"])
+	assert.Equal(t, "alice@example.com", resp["email"])
+}
+
+func TestUserHandler_Me_NotFound(t *testing.T) {
+	router, _ := setupUserRouter(mock.NewUserRepo(), uuid.New().String())
+
+	w := getRequest(router, "/users/me")
+	assert.Equal(t, http.StatusNotFound, w.Code)
+	assertErrorBody(t, w)
+}
+
+func TestUserHandler_Me_InvalidToken(t *testing.T) {
+	router, _ := setupUserRouter(mock.NewUserRepo(), "not-a-uuid")
+
+	w := getRequest(router, "/users/me")
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
 

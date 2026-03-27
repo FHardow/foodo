@@ -67,6 +67,22 @@ func (h *UserHandler) Register(c *gin.Context) {
 	respond.JSON(c, http.StatusCreated, toUserResponse(u))
 }
 
+func (h *UserHandler) Me(c *gin.Context) {
+	subRaw, _ := c.Get(middleware.UserIDKey)
+	sub, _ := subRaw.(string)
+	id, err := uuid.Parse(sub)
+	if err != nil {
+		respond.Error(c, domerrors.BadRequest("invalid user ID in token"))
+		return
+	}
+	u, err := h.svc.GetByID(c.Request.Context(), id)
+	if err != nil {
+		respond.Error(c, err)
+		return
+	}
+	respond.JSON(c, http.StatusOK, toUserResponse(u))
+}
+
 func (h *UserHandler) GetByID(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
