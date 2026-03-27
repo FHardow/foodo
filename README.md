@@ -6,11 +6,12 @@ A bread ordering app with a React frontend, Go backend, Keycloak authentication,
 
 ```
 Internet → Traefik (TLS termination)
-              ├── bread.example.com        → Frontend (nginx + React SPA)
-              ├── bread.example.com/api/*  → Backend (Go API)
-              └── auth.bread.example.com   → Keycloak
+              ├── bread.fhardow.de        → Frontend (nginx + React SPA)
+              └── bread.fhardow.de/api/*  → Backend (Go API)
                        ↓
                   PostgreSQL (internal)
+
+Keycloak runs separately and is referenced via KEYCLOAK_URL.
 ```
 
 ## Prerequisites
@@ -18,8 +19,8 @@ Internet → Traefik (TLS termination)
 - Docker and Docker Compose
 - A Linux server with ports 80 and 443 open
 - DNS A records pointing to your server:
-  - `bread.example.com`
-  - `auth.bread.example.com`
+  - `bread.fhardow.de`
+- A running Keycloak instance (e.g. `auth.fhardow.de`) with the `bread-order` realm configured
 
 ## Deployment
 
@@ -30,7 +31,21 @@ git clone <repo-url>
 cd bread-order
 ```
 
-### 2. Configure environment
+### 2. Start Traefik
+
+Traefik runs in its own compose file and creates the shared `traefik-public` Docker network that other services attach to.
+
+```bash
+docker compose -f docker-compose.traefik.yml up -d
+```
+
+This only needs to be done once per host. If you already have Traefik running elsewhere, make sure the `traefik-public` network exists:
+
+```bash
+docker network create traefik-public
+```
+
+### 3. Configure environment
 
 ```bash
 cp .env.example .env
@@ -40,47 +55,26 @@ Edit `.env` with your values:
 
 | Variable | Description |
 |----------|-------------|
-| `DOMAIN` | Your public domain, e.g. `bread.example.com` |
+| `DOMAIN` | Your domain, e.g. `fhardow.de` |
 | `ACME_EMAIL` | Email for Let's Encrypt certificate notifications |
 | `DB_PASSWORD` | PostgreSQL password |
-| `KEYCLOAK_ADMIN_PASSWORD` | Keycloak admin console password |
+| `KEYCLOAK_URL` | URL of your Keycloak instance |
+| `VITE_KEYCLOAK_URL` | Same URL, baked into the frontend at build time |
 
-### 3. Build and start
+### 4. Build and start
 
 ```bash
 docker compose up -d --build
 ```
 
-On first start:
-- PostgreSQL initializes both the app database and the Keycloak database
-- Keycloak imports `realm-export.json` and sets up the `bread-order` realm
-- The Go backend runs database migrations automatically
+On first start the Go backend runs database migrations automatically.
 
-### 4. Verify
+### 5. Verify
 
 ```bash
 docker compose ps        # all services should be healthy/running
 docker compose logs -f   # follow logs
 ```
-
-The app is available at `https://bread.example.com` once Keycloak has finished starting (it can take ~30–60 seconds on first boot).
-
-## Moving Traefik to a shared instance
-
-If you already have a Traefik instance running on the host:
-
-1. Remove the `traefik` service from `docker-compose.yml`
-2. Remove the `letsencrypt` volume
-3. Create an external Docker network (e.g. `traefik-public`) and add it to each service:
-   ```yaml
-   networks:
-     default:
-     traefik-public:
-       external: true
-   ```
-4. Add `--providers.docker.network=traefik-public` to your existing Traefik config
-
-The Traefik labels on each service stay the same.
 
 ## Updating
 

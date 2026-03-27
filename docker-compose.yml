@@ -1,28 +1,4 @@
 services:
-  # ── Traefik ────────────────────────────────────────────────────────────────
-  # Move this service to a dedicated compose file on the host when sharing
-  # Traefik across multiple projects. Use a named external Docker network and
-  # attach the other services to it instead.
-  traefik:
-    image: traefik:v3
-    command:
-      - --providers.docker=true
-      - --providers.docker.exposedbydefault=false
-      - --entrypoints.web.address=:80
-      - --entrypoints.web.http.redirections.entrypoint.to=websecure
-      - --entrypoints.web.http.redirections.entrypoint.scheme=https
-      - --entrypoints.websecure.address=:443
-      - --certificatesresolvers.letsencrypt.acme.tlschallenge=true
-      - --certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL}
-      - --certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - letsencrypt:/letsencrypt
-    restart: unless-stopped
-
   # ── Frontend ───────────────────────────────────────────────────────────────
   frontend:
     build:
@@ -31,16 +7,19 @@ services:
         # VITE_API_URL left empty so API calls are relative to the same origin.
         # Traefik routes /api/* to the backend, everything else to this container.
         VITE_API_URL: ""
-        VITE_KEYCLOAK_URL: https://auth.${DOMAIN}
+        VITE_KEYCLOAK_URL: ${VITE_KEYCLOAK_URL}
         VITE_KEYCLOAK_REALM: ${KEYCLOAK_REALM:-bread-order}
         VITE_KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID:-bread-frontend}
     labels:
       - traefik.enable=true
-      - traefik.http.routers.frontend.rule=Host(`${DOMAIN}`)
+      - traefik.http.routers.frontend.rule=Host(`bread.${DOMAIN}`)
       - traefik.http.routers.frontend.entrypoints=websecure
       - traefik.http.routers.frontend.tls.certresolver=letsencrypt
       - traefik.http.routers.frontend.priority=1
       - traefik.http.services.frontend.loadbalancer.server.port=80
+    networks:
+      - traefik-public
+      - internal
     restart: unless-stopped
 
   # ── Backend ────────────────────────────────────────────────────────────────
@@ -53,43 +32,18 @@ services:
       DB_USER: ${DB_USER:-bread}
       DB_PASSWORD: ${DB_PASSWORD}
       DB_NAME: ${DB_NAME:-bread_order}
-      KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_URL: ${KEYCLOAK_URL}
       KEYCLOAK_REALM: ${KEYCLOAK_REALM:-bread-order}
     labels:
       - traefik.enable=true
-      - traefik.http.routers.backend.rule=Host(`${DOMAIN}`) && PathPrefix(`/api`)
+      - traefik.http.routers.backend.rule=Host(`bread.${DOMAIN}`) && PathPrefix(`/api`)
       - traefik.http.routers.backend.entrypoints=websecure
       - traefik.http.routers.backend.tls.certresolver=letsencrypt
       - traefik.http.routers.backend.priority=10
       - traefik.http.services.backend.loadbalancer.server.port=8080
-    depends_on:
-      postgres:
-        condition: service_healthy
-    restart: unless-stopped
-
-  # ── Keycloak ───────────────────────────────────────────────────────────────
-  keycloak:
-    image: quay.io/keycloak/keycloak:26
-    # --import-realm loads realm-export.json on first start only
-    command: start --import-realm
-    environment:
-      KC_DB: postgres
-      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
-      KC_DB_USERNAME: ${DB_USER:-bread}
-      KC_DB_PASSWORD: ${DB_PASSWORD}
-      KC_HOSTNAME: auth.${DOMAIN}
-      KC_HTTP_ENABLED: "true"
-      KC_PROXY_HEADERS: xforwarded
-      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN_USER:-admin}
-      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
-    volumes:
-      - ./realm-export.json:/opt/keycloak/data/import/realm-export.json:ro
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.keycloak.rule=Host(`auth.${DOMAIN}`)
-      - traefik.http.routers.keycloak.entrypoints=websecure
-      - traefik.http.routers.keycloak.tls.certresolver=letsencrypt
-      - traefik.http.services.keycloak.loadbalancer.server.port=8080
+    networks:
+      - traefik-public
+      - internal
     depends_on:
       postgres:
         condition: service_healthy
@@ -104,14 +58,19 @@ services:
       POSTGRES_DB: ${DB_NAME:-bread_order}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-bread} -d ${DB_NAME:-bread_order}"]
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - internal
     restart: unless-stopped
+
+networks:
+  traefik-public:
+    external: true
+  internal:
 
 volumes:
   postgres_data:
-  letsencrypt:
