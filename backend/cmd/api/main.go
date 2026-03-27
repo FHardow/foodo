@@ -20,6 +20,8 @@ import (
 	"github.com/fhardow/bread-order/pkg/logger"
 )
 
+const uploadsDir = "./uploads"
+
 func main() {
 	cfg, err := config.Load()
 	if err != nil {
@@ -28,6 +30,11 @@ func main() {
 	}
 
 	log := logger.New(cfg.Env)
+
+	if err := os.MkdirAll(uploadsDir, 0755); err != nil {
+		log.Error("failed to create uploads directory", "err", err)
+		os.Exit(1)
+	}
 
 	db, err := postgres.Connect(cfg.DSN, cfg.Env)
 	if err != nil {
@@ -52,10 +59,10 @@ func main() {
 
 	// HTTP handlers
 	userHandler    := handler.NewUserHandler(userSvc)
-	productHandler := handler.NewProductHandler(productSvc)
+	productHandler := handler.NewProductHandler(productSvc, uploadsDir)
 	orderHandler   := handler.NewOrderHandler(orderSvc)
 
-	router := apphttp.NewRouter(userHandler, productHandler, orderHandler, cfg.KeycloakURL, cfg.KeycloakRealm, userSvc)
+	router := apphttp.NewRouter(userHandler, productHandler, orderHandler, cfg.KeycloakURL, cfg.KeycloakRealm, uploadsDir)
 	srv    := apphttp.NewServer(cfg.Port, router, log)
 
 	// Graceful shutdown

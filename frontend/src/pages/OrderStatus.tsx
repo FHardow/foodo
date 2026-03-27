@@ -52,7 +52,9 @@ export default function OrderStatus() {
             className="flex justify-between bg-white rounded-lg border border-[#e8ddd0] p-4"
           >
             <span className="text-[#3d2b1a]">{item.product_name}</span>
-            <span className="text-[#8a6a50]">× {item.quantity}</span>
+            <span className="text-[#8a6a50]">
+              {item.unit ? `${item.unit} × ${item.quantity}` : `× ${item.quantity}`}
+            </span>
           </li>
         ))}
       </ul>

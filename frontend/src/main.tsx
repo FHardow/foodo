@@ -5,7 +5,7 @@ import App from './App'
 import keycloak from './auth/keycloak'
 
 keycloak
-  .init({ onLoad: 'login-required', pkceMethod: 'S256' })
+  .init({ onLoad: 'login-required', pkceMethod: 'S256', checkLoginIframe: false })
   .then((authenticated) => {
     if (!authenticated) {
       keycloak.login()

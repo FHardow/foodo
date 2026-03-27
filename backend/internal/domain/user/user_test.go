@@ -106,7 +106,7 @@ func TestReconstitute_PreservesAllFields(t *testing.T) {
 	created := time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC)
 	updated := time.Date(2024, 6, 1, 12, 0, 0, 0, time.UTC)
 
-	u := user.Reconstitute(id, "Bob", "bob@example.com", "+9999", created, updated)
+	u := user.Reconstitute(id, "Bob", "bob@example.com", "+9999", user.RoleCustomer, created, updated)
 
 	assert.Equal(t, id, u.ID())
 	assert.Equal(t, "Bob", u.Name())
@@ -119,6 +119,6 @@ func TestReconstitute_PreservesAllFields(t *testing.T) {
 func TestReconstitute_DoesNotValidate(t *testing.T) {
 	// Reconstitute must not run validation — it trusts persisted data.
 	id := uuid.New()
-	u := user.Reconstitute(id, "", "", "", time.Now(), time.Now())
+	u := user.Reconstitute(id, "", "", "", user.RoleCustomer, time.Now(), time.Now())
 	assert.NotNil(t, u, "Reconstitute should succeed even with empty fields")
 }

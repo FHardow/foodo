@@ -13,15 +13,15 @@ type Product struct {
 	id          ID
 	name        string
 	description string
-	// price in cents to avoid floating-point issues
 	priceCents  int64
 	unit        string
 	available   bool
+	imageURL    string
 	createdAt   time.Time
 	updatedAt   time.Time
 }
 
-func New(name, description string, priceCents int64, unit string) (*Product, error) {
+func New(name, description string, priceCents int64, unit string, available bool) (*Product, error) {
 	if name == "" {
 		return nil, domerrors.BadRequest("name is required")
 	}
@@ -38,13 +38,13 @@ func New(name, description string, priceCents int64, unit string) (*Product, err
 		description: description,
 		priceCents:  priceCents,
 		unit:        unit,
-		available:   true,
+		available:   available,
 		createdAt:   now,
 		updatedAt:   now,
 	}, nil
 }
 
-func Reconstitute(id ID, name, description string, priceCents int64, unit string, available bool, createdAt, updatedAt time.Time) *Product {
+func Reconstitute(id ID, name, description string, priceCents int64, unit string, available bool, imageURL string, createdAt, updatedAt time.Time) *Product {
 	return &Product{
 		id:          id,
 		name:        name,
@@ -52,17 +52,19 @@ func Reconstitute(id ID, name, description string, priceCents int64, unit string
 		priceCents:  priceCents,
 		unit:        unit,
 		available:   available,
+		imageURL:    imageURL,
 		createdAt:   createdAt,
 		updatedAt:   updatedAt,
 	}
 }
 
-func (p *Product) ID() ID              { return p.id }
-func (p *Product) Name() string        { return p.name }
-func (p *Product) Description() string { return p.description }
-func (p *Product) PriceCents() int64   { return p.priceCents }
-func (p *Product) Unit() string        { return p.unit }
-func (p *Product) Available() bool     { return p.available }
+func (p *Product) ID() ID               { return p.id }
+func (p *Product) Name() string         { return p.name }
+func (p *Product) Description() string  { return p.description }
+func (p *Product) PriceCents() int64    { return p.priceCents }
+func (p *Product) Unit() string         { return p.unit }
+func (p *Product) Available() bool      { return p.available }
+func (p *Product) ImageURL() string     { return p.imageURL }
 func (p *Product) CreatedAt() time.Time { return p.createdAt }
 func (p *Product) UpdatedAt() time.Time { return p.updatedAt }
 
@@ -86,5 +88,10 @@ func (p *Product) Update(name, description string, priceCents int64, unit string
 
 func (p *Product) SetAvailable(available bool) {
 	p.available = available
+	p.updatedAt = time.Now().UTC()
+}
+
+func (p *Product) SetImageURL(url string) {
+	p.imageURL = url
 	p.updatedAt = time.Now().UTC()
 }

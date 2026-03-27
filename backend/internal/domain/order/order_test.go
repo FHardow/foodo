@@ -47,7 +47,7 @@ func TestOrder_New_MissingUserID(t *testing.T) {
 func TestOrder_AddItem_Success(t *testing.T) {
 	o := newValidOrder(t)
 	pid, name, price := newProduct(t)
-	err := o.AddItem(pid, name, 2, price)
+	err := o.AddItem(pid, name, "loaf", 2, price)
 	require.NoError(t, err)
 	items := o.Items()
 	require.Len(t, items, 1)
@@ -58,8 +58,8 @@ func TestOrder_AddItem_Success(t *testing.T) {
 func TestOrder_AddItem_MergesSameProduct(t *testing.T) {
 	o := newValidOrder(t)
 	pid, name, price := newProduct(t)
-	require.NoError(t, o.AddItem(pid, name, 2, price))
-	require.NoError(t, o.AddItem(pid, name, 3, price))
+	require.NoError(t, o.AddItem(pid, name, "loaf", 2, price))
+	require.NoError(t, o.AddItem(pid, name, "loaf", 3, price))
 	items := o.Items()
 	require.Len(t, items, 1)
 	assert.Equal(t, 5, items[0].Quantity)
@@ -69,15 +69,15 @@ func TestOrder_AddItem_MultipleDistinctProducts(t *testing.T) {
 	o := newValidOrder(t)
 	pid1, name1, price1 := newProduct(t)
 	pid2, name2, price2 := newProduct(t)
-	require.NoError(t, o.AddItem(pid1, name1, 1, price1))
-	require.NoError(t, o.AddItem(pid2, name2, 1, price2))
+	require.NoError(t, o.AddItem(pid1, name1, "loaf", 1, price1))
+	require.NoError(t, o.AddItem(pid2, name2, "loaf", 1, price2))
 	assert.Len(t, o.Items(), 2)
 }
 
 func TestOrder_AddItem_ZeroQuantity(t *testing.T) {
 	o := newValidOrder(t)
 	pid, name, price := newProduct(t)
-	err := o.AddItem(pid, name, 0, price)
+	err := o.AddItem(pid, name, "loaf", 0, price)
 	require.Error(t, err)
 	assert.True(t, domerrors.Is(err, domerrors.ErrBadRequest))
 }
@@ -85,7 +85,7 @@ func TestOrder_AddItem_ZeroQuantity(t *testing.T) {
 func TestOrder_AddItem_NegativeQuantity(t *testing.T) {
 	o := newValidOrder(t)
 	pid, name, price := newProduct(t)
-	err := o.AddItem(pid, name, -1, price)
+	err := o.AddItem(pid, name, "loaf", -1, price)
 	require.Error(t, err)
 	assert.True(t, domerrors.Is(err, domerrors.ErrBadRequest))
 }
@@ -93,9 +93,9 @@ func TestOrder_AddItem_NegativeQuantity(t *testing.T) {
 func TestOrder_AddItem_NonPendingOrder(t *testing.T) {
 	o := newValidOrder(t)
 	pid, name, price := newProduct(t)
-	require.NoError(t, o.AddItem(pid, name, 1, price))
+	require.NoError(t, o.AddItem(pid, name, "loaf", 1, price))
 	require.NoError(t, o.Confirm())
-	err := o.AddItem(uuid.New(), "Another", 1, 100)
+	err := o.AddItem(uuid.New(), "Another", "loaf", 1, 100)
 	require.Error(t, err)
 	assert.True(t, domerrors.Is(err, domerrors.ErrForbidden))
 }
@@ -104,8 +104,8 @@ func TestOrder_RemoveItem_Success(t *testing.T) {
 	o := newValidOrder(t)
 	pid1, name1, price1 := newProduct(t)
 	pid2, name2, price2 := newProduct(t)
-	require.NoError(t, o.AddItem(pid1, name1, 2, price1))
-	require.NoError(t, o.AddItem(pid2, name2, 1, price2))
+	require.NoError(t, o.AddItem(pid1, name1, "loaf", 2, price1))
+	require.NoError(t, o.AddItem(pid2, name2, "loaf", 1, price2))
 	err := o.RemoveItem(pid1)
 	require.NoError(t, err)
 	items := o.Items()
@@ -123,7 +123,7 @@ func TestOrder_RemoveItem_NotFound(t *testing.T) {
 func TestOrder_RemoveItem_NonPendingOrder(t *testing.T) {
 	o := newValidOrder(t)
 	pid, name, price := newProduct(t)
-	require.NoError(t, o.AddItem(pid, name, 1, price))
+	require.NoError(t, o.AddItem(pid, name, "loaf", 1, price))
 	require.NoError(t, o.Confirm())
 	err := o.RemoveItem(pid)
 	require.Error(t, err)
@@ -133,7 +133,7 @@ func TestOrder_RemoveItem_NonPendingOrder(t *testing.T) {
 func TestOrder_Confirm_Success(t *testing.T) {
 	o := newValidOrder(t)
 	pid, name, price := newProduct(t)
-	require.NoError(t, o.AddItem(pid, name, 1, price))
+	require.NoError(t, o.AddItem(pid, name, "loaf", 1, price))
 	before := o.UpdatedAt()
 	time.Sleep(time.Millisecond)
 	err := o.Confirm()
@@ -152,7 +152,7 @@ func TestOrder_Confirm_EmptyOrder(t *testing.T) {
 func TestOrder_Confirm_AlreadyConfirmed(t *testing.T) {
 	o := newValidOrder(t)
 	pid, name, price := newProduct(t)
-	require.NoError(t, o.AddItem(pid, name, 1, price))
+	require.NoError(t, o.AddItem(pid, name, "loaf", 1, price))
 	require.NoError(t, o.Confirm())
 	err := o.Confirm()
 	require.Error(t, err)
@@ -162,7 +162,7 @@ func TestOrder_Confirm_AlreadyConfirmed(t *testing.T) {
 func TestOrder_Fulfill_Success(t *testing.T) {
 	o := newValidOrder(t)
 	pid, name, price := newProduct(t)
-	require.NoError(t, o.AddItem(pid, name, 1, price))
+	require.NoError(t, o.AddItem(pid, name, "loaf", 1, price))
 	require.NoError(t, o.Confirm())
 	before := o.UpdatedAt()
 	time.Sleep(time.Millisecond)
@@ -189,7 +189,7 @@ func TestOrder_Cancel_FromPending(t *testing.T) {
 func TestOrder_Cancel_FromConfirmed(t *testing.T) {
 	o := newValidOrder(t)
 	pid, name, price := newProduct(t)
-	require.NoError(t, o.AddItem(pid, name, 1, price))
+	require.NoError(t, o.AddItem(pid, name, "loaf", 1, price))
 	require.NoError(t, o.Confirm())
 	err := o.Cancel()
 	require.NoError(t, err)
@@ -199,7 +199,7 @@ func TestOrder_Cancel_FromConfirmed(t *testing.T) {
 func TestOrder_Cancel_FromFulfilled(t *testing.T) {
 	o := newValidOrder(t)
 	pid, name, price := newProduct(t)
-	require.NoError(t, o.AddItem(pid, name, 1, price))
+	require.NoError(t, o.AddItem(pid, name, "loaf", 1, price))
 	require.NoError(t, o.Confirm())
 	require.NoError(t, o.Fulfill())
 	err := o.Cancel()
@@ -223,7 +223,7 @@ func TestOrder_TotalCents_Empty(t *testing.T) {
 func TestOrder_TotalCents_SingleItem(t *testing.T) {
 	o := newValidOrder(t)
 	pid, name, _ := newProduct(t)
-	require.NoError(t, o.AddItem(pid, name, 3, 200))
+	require.NoError(t, o.AddItem(pid, name, "loaf", 3, 200))
 	assert.Equal(t, int64(600), o.TotalCents())
 }
 
@@ -231,8 +231,8 @@ func TestOrder_TotalCents_MultipleItems(t *testing.T) {
 	o := newValidOrder(t)
 	pid1, name1, _ := newProduct(t)
 	pid2, name2, _ := newProduct(t)
-	require.NoError(t, o.AddItem(pid1, name1, 2, 300))
-	require.NoError(t, o.AddItem(pid2, name2, 1, 500))
+	require.NoError(t, o.AddItem(pid1, name1, "loaf", 2, 300))
+	require.NoError(t, o.AddItem(pid2, name2, "loaf", 1, 500))
 	assert.Equal(t, int64(1100), o.TotalCents())
 }
 
@@ -240,8 +240,8 @@ func TestOrder_TotalCents_AfterRemoveItem(t *testing.T) {
 	o := newValidOrder(t)
 	pid1, name1, _ := newProduct(t)
 	pid2, name2, _ := newProduct(t)
-	require.NoError(t, o.AddItem(pid1, name1, 2, 300))
-	require.NoError(t, o.AddItem(pid2, name2, 1, 500))
+	require.NoError(t, o.AddItem(pid1, name1, "loaf", 2, 300))
+	require.NoError(t, o.AddItem(pid2, name2, "loaf", 1, 500))
 	require.NoError(t, o.RemoveItem(pid2))
 	assert.Equal(t, int64(600), o.TotalCents())
 }
@@ -266,7 +266,7 @@ func TestOrder_Reconstitute_PreservesAllFields(t *testing.T) {
 	id := uuid.New()
 	userID := uuid.New()
 	pid := uuid.New()
-	items := []order.Item{{ProductID: pid, ProductName: "Rye", Quantity: 2, UnitPriceCents: 300}}
+	items := []order.Item{{ProductID: pid, ProductName: "Rye", Unit: "loaf", Quantity: 2, UnitPriceCents: 300}}
 	created := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
 	updated := time.Date(2024, 6, 1, 0, 0, 0, 0, time.UTC)
 

@@ -63,7 +63,7 @@ func productToDomain(m *models.Product) (*product.Product, error) {
 	if err != nil {
 		return nil, err
 	}
-	return product.Reconstitute(id, m.Name, m.Description, m.PriceCents, m.Unit, m.Available, m.CreatedAt, m.UpdatedAt), nil
+	return product.Reconstitute(id, m.Name, m.Description, m.PriceCents, m.Unit, m.Available, m.ImageURL, m.CreatedAt, m.UpdatedAt), nil
 }
 
 func productToModel(p *product.Product) models.Product {
@@ -74,6 +74,7 @@ func productToModel(p *product.Product) models.Product {
 		PriceCents:  p.PriceCents(),
 		Unit:        p.Unit(),
 		Available:   p.Available(),
+		ImageURL:    p.ImageURL(),
 		CreatedAt:   p.CreatedAt(),
 		UpdatedAt:   p.UpdatedAt(),
 	}

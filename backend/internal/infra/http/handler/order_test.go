@@ -39,7 +39,7 @@ func setupOrderRouter(orderRepo *mock.OrderRepo, productRepo *mock.ProductRepo) 
 // seedProductInRepo adds a product directly to the product mock repo and returns its ID string.
 func seedProductInRepo(t *testing.T, repo *mock.ProductRepo) string {
 	t.Helper()
-	p, err := product.New("Sourdough", "test loaf", 450, "loaf")
+	p, err := product.New("Sourdough", "test loaf", 450, "loaf", true)
 	require.NoError(t, err)
 	require.NoError(t, repo.Save(context.Background(), p))
 	return p.ID().String()
