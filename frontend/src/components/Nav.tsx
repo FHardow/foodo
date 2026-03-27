@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { getOrder } from '../api/orders'
 import { useBasketStore } from '../store/basket'
+import keycloak from '../auth/keycloak'
 
 export default function Nav() {
   const basketOrderId = useBasketStore((s) => s.basketOrderId)
@@ -12,6 +13,7 @@ export default function Nav() {
   })
 
   const itemCount = order?.items.reduce((sum, item) => sum + item.quantity, 0) ?? 0
+  const isOwner = keycloak.hasRealmRole('owner')
 
   return (
     <nav className="bg-white border-b border-[#e8ddd0] px-4 py-3 flex justify-between items-center sticky top-0 z-10">
@@ -25,6 +27,11 @@ export default function Nav() {
         <Link to="/orders" className="hidden sm:block text-sm text-[#5c3d1e] hover:text-[#3d2b1a]">
           History
         </Link>
+        {isOwner && (
+          <Link to="/admin/products" className="hidden sm:block text-sm text-[#5c3d1e] hover:text-[#3d2b1a]">
+            Manage
+          </Link>
+        )}
         <Link
           to="/basket"
           aria-label={`Basket${itemCount > 0 ? `, ${itemCount} item${itemCount !== 1 ? 's' : ''}` : ''}`}

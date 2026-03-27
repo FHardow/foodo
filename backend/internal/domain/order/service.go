@@ -51,7 +51,7 @@ func (s *Service) AddItem(ctx context.Context, orderID ID, productID product.ID,
 	if !p.Available() {
 		return nil, product.ErrUnavailable
 	}
-	if err := o.AddItem(p.ID(), p.Name(), quantity, p.PriceCents()); err != nil {
+	if err := o.AddItem(p.ID(), p.Name(), p.Unit(), quantity, p.PriceCents()); err != nil {
 		return nil, err
 	}
 	if err := s.repo.Save(ctx, o); err != nil {

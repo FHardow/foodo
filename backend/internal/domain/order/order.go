@@ -22,6 +22,7 @@ const (
 type Item struct {
 	ProductID      product.ID
 	ProductName    string
+	Unit           string
 	Quantity       int
 	UnitPriceCents int64
 }
@@ -80,7 +81,7 @@ func (o *Order) TotalCents() int64 {
 	return total
 }
 
-func (o *Order) AddItem(productID product.ID, productName string, quantity int, unitPriceCents int64) error {
+func (o *Order) AddItem(productID product.ID, productName string, unit string, quantity int, unitPriceCents int64) error {
 	if o.status != StatusPending {
 		return domerrors.Forbidden("can only modify pending orders")
 	}
@@ -97,6 +98,7 @@ func (o *Order) AddItem(productID product.ID, productName string, quantity int, 
 	o.items = append(o.items, Item{
 		ProductID:      productID,
 		ProductName:    productName,
+		Unit:           unit,
 		Quantity:       quantity,
 		UnitPriceCents: unitPriceCents,
 	})

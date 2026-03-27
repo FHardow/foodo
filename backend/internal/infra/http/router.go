@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/fhardow/bread-order/internal/domain/user"
 	"github.com/fhardow/bread-order/internal/infra/http/handler"
 	"github.com/fhardow/bread-order/internal/infra/http/middleware"
 	"github.com/gin-contrib/cors"
@@ -17,7 +16,7 @@ func NewRouter(
 	orders *handler.OrderHandler,
 	keycloakURL string,
 	keycloakRealm string,
-	userSvc *user.Service,
+	uploadsDir string,
 ) http.Handler {
 	r := gin.New()
 	r.Use(gin.Logger(), gin.Recovery())
@@ -27,8 +26,11 @@ func NewRouter(
 		AllowHeaders: []string{"Content-Type", "Authorization"},
 	}))
 
+	// Serve uploaded images without auth — URLs are UUID-based and not guessable.
+	r.Static("/uploads", uploadsDir)
+
 	jwksURL := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/certs", keycloakURL, keycloakRealm)
-	ownerOnly := middleware.RequireOwner(userSvc)
+	ownerOnly := middleware.RequireOwner()
 
 	v1 := r.Group("/api/v1")
 	v1.Use(middleware.JWTAuth(jwksURL))
@@ -46,6 +48,7 @@ func NewRouter(
 		p.PUT("/:id", ownerOnly, products.Update)
 		p.PATCH("/:id/availability", ownerOnly, products.SetAvailable)
 		p.DELETE("/:id", ownerOnly, products.Delete)
+		p.POST("/:id/image", ownerOnly, products.UploadImage)
 
 		o := v1.Group("/orders")
 		o.GET("", orders.List)

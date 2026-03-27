@@ -16,7 +16,7 @@ import (
 // ---------------------------------------------------------------------------
 
 func TestNew_Success(t *testing.T) {
-	p, err := product.New("Sourdough", "classic loaf", 450, "loaf")
+	p, err := product.New("Sourdough", "classic loaf", 450, "loaf", true)
 	require.NoError(t, err)
 	require.NotNil(t, p)
 
@@ -31,27 +31,27 @@ func TestNew_Success(t *testing.T) {
 }
 
 func TestNew_ZeroPriceIsValid(t *testing.T) {
-	p, err := product.New("Free Sample", "", 0, "piece")
+	p, err := product.New("Free Sample", "", 0, "piece", true)
 	require.NoError(t, err)
 	assert.Equal(t, int64(0), p.PriceCents())
 }
 
 func TestNew_MissingName(t *testing.T) {
-	p, err := product.New("", "desc", 100, "unit")
+	p, err := product.New("", "desc", 100, "unit", true)
 	assert.Nil(t, p)
 	require.Error(t, err)
 	assert.True(t, domerrors.Is(err, domerrors.ErrBadRequest))
 }
 
 func TestNew_NegativePrice(t *testing.T) {
-	p, err := product.New("Bread", "", -1, "loaf")
+	p, err := product.New("Bread", "", -1, "loaf", true)
 	assert.Nil(t, p)
 	require.Error(t, err)
 	assert.True(t, domerrors.Is(err, domerrors.ErrBadRequest))
 }
 
 func TestNew_MissingUnit(t *testing.T) {
-	p, err := product.New("Bread", "", 100, "")
+	p, err := product.New("Bread", "", 100, "", true)
 	assert.Nil(t, p)
 	require.Error(t, err)
 	assert.True(t, domerrors.Is(err, domerrors.ErrBadRequest))
@@ -62,7 +62,7 @@ func TestNew_MissingUnit(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestUpdate_Success(t *testing.T) {
-	p, _ := product.New("Sourdough", "old desc", 450, "loaf")
+	p, _ := product.New("Sourdough", "old desc", 450, "loaf", true)
 
 	before := p.UpdatedAt()
 	time.Sleep(time.Millisecond)
@@ -78,7 +78,7 @@ func TestUpdate_Success(t *testing.T) {
 }
 
 func TestUpdate_MissingName(t *testing.T) {
-	p, _ := product.New("Sourdough", "", 450, "loaf")
+	p, _ := product.New("Sourdough", "", 450, "loaf", true)
 	err := p.Update("", "", 450, "loaf")
 	require.Error(t, err)
 	assert.True(t, domerrors.Is(err, domerrors.ErrBadRequest))
@@ -86,7 +86,7 @@ func TestUpdate_MissingName(t *testing.T) {
 }
 
 func TestUpdate_NegativePrice(t *testing.T) {
-	p, _ := product.New("Sourdough", "", 450, "loaf")
+	p, _ := product.New("Sourdough", "", 450, "loaf", true)
 	err := p.Update("Sourdough", "", -50, "loaf")
 	require.Error(t, err)
 	assert.True(t, domerrors.Is(err, domerrors.ErrBadRequest))
@@ -94,7 +94,7 @@ func TestUpdate_NegativePrice(t *testing.T) {
 }
 
 func TestUpdate_MissingUnit(t *testing.T) {
-	p, _ := product.New("Sourdough", "", 450, "loaf")
+	p, _ := product.New("Sourdough", "", 450, "loaf", true)
 	err := p.Update("Sourdough", "", 450, "")
 	require.Error(t, err)
 	assert.True(t, domerrors.Is(err, domerrors.ErrBadRequest))
@@ -106,7 +106,7 @@ func TestUpdate_MissingUnit(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestSetAvailable_ToFalse(t *testing.T) {
-	p, _ := product.New("Sourdough", "", 450, "loaf")
+	p, _ := product.New("Sourdough", "", 450, "loaf", true)
 	assert.True(t, p.Available())
 
 	before := p.UpdatedAt()
@@ -118,14 +118,14 @@ func TestSetAvailable_ToFalse(t *testing.T) {
 }
 
 func TestSetAvailable_ToTrue(t *testing.T) {
-	p, _ := product.New("Sourdough", "", 450, "loaf")
+	p, _ := product.New("Sourdough", "", 450, "loaf", true)
 	p.SetAvailable(false)
 	p.SetAvailable(true)
 	assert.True(t, p.Available())
 }
 
 func TestSetAvailable_Idempotent(t *testing.T) {
-	p, _ := product.New("Sourdough", "", 450, "loaf")
+	p, _ := product.New("Sourdough", "", 450, "loaf", true)
 	p.SetAvailable(true) // already true
 	assert.True(t, p.Available())
 }
@@ -139,7 +139,7 @@ func TestReconstitute_PreservesAllFields(t *testing.T) {
 	created := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
 	updated := time.Date(2024, 6, 1, 0, 0, 0, 0, time.UTC)
 
-	p := product.Reconstitute(id, "Rye", "dark", 300, "loaf", false, created, updated)
+	p := product.Reconstitute(id, "Rye", "dark", 300, "loaf", false, "", created, updated)
 
 	assert.Equal(t, id, p.ID())
 	assert.Equal(t, "Rye", p.Name())
@@ -149,4 +149,13 @@ func TestReconstitute_PreservesAllFields(t *testing.T) {
 	assert.False(t, p.Available())
 	assert.Equal(t, created, p.CreatedAt())
 	assert.Equal(t, updated, p.UpdatedAt())
+}
+
+func TestProduct_SetImageURL(t *testing.T) {
+	p, err := product.New("Sourdough", "", 500, "loaf", true)
+	require.NoError(t, err)
+	assert.Empty(t, p.ImageURL())
+
+	p.SetImageURL("/uploads/some-uuid.jpg")
+	assert.Equal(t, "/uploads/some-uuid.jpg", p.ImageURL())
 }

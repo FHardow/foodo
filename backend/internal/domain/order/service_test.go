@@ -21,7 +21,7 @@ func newOrderService(orderRepo *mock.OrderRepo, productRepo *mock.ProductRepo) *
 // seededProduct inserts a product directly into the mock repo and returns its ID.
 func seededProduct(t *testing.T, repo *mock.ProductRepo, available bool) product.ID {
 	t.Helper()
-	p, err := product.New("Sourdough", "test", 450, "loaf")
+	p, err := product.New("Sourdough", "test", 450, "loaf", true)
 	require.NoError(t, err)
 	if !available {
 		p.SetAvailable(false)

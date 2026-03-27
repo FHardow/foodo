@@ -91,6 +91,7 @@ func orderToDomain(m *models.Order) (*order.Order, error) {
 		items = append(items, order.Item{
 			ProductID:      product.ID(pid),
 			ProductName:    mi.ProductName,
+			Unit:           mi.Unit,
 			Quantity:       mi.Quantity,
 			UnitPriceCents: mi.UnitPriceCents,
 		})
@@ -117,6 +118,7 @@ func orderToModel(o *order.Order) models.Order {
 			OrderID:        o.ID().String(),
 			ProductID:      item.ProductID.String(),
 			ProductName:    item.ProductName,
+			Unit:           item.Unit,
 			Quantity:       item.Quantity,
 			UnitPriceCents: item.UnitPriceCents,
 			CreatedAt:      time.Now().UTC(),

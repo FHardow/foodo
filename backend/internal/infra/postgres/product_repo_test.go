@@ -15,7 +15,7 @@ import (
 
 func makeProduct(t *testing.T, name string) *product.Product {
 	t.Helper()
-	p, err := product.New(name, "test desc", 450, "loaf")
+	p, err := product.New(name, "test desc", 450, "loaf", true)
 	require.NoError(t, err)
 	return p
 }

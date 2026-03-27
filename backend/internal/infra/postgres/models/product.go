@@ -9,6 +9,7 @@ type Product struct {
 	PriceCents  int64     `gorm:"not null"`
 	Unit        string    `gorm:"not null"`
 	Available   bool      `gorm:"not null;default:true"`
+	ImageURL    string
 	CreatedAt   time.Time `gorm:"not null"`
 	UpdatedAt   time.Time `gorm:"not null"`
 }

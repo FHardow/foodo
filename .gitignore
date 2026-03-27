@@ -5,3 +5,4 @@ worktrees/
 frontend/.env
 backend/.env
 **/node_modules
+backend/uploads/
