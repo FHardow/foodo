@@ -4,7 +4,7 @@ import { getOrder } from '../api/orders'
 import StatusBadge from '../components/StatusBadge'
 import type { Order } from '../types'
 
-const TERMINAL = new Set<Order['status']>(['fulfilled', 'cancelled'])
+const TERMINAL = new Set<Order['status']>(['finished'])
 
 export default function OrderStatus() {
   const { id } = useParams<{ id: string }>()

@@ -88,12 +88,12 @@ func (s *Service) Confirm(ctx context.Context, id ID) (*Order, error) {
 	return o, nil
 }
 
-func (s *Service) Fulfill(ctx context.Context, id ID) (*Order, error) {
+func (s *Service) Accept(ctx context.Context, id ID) (*Order, error) {
 	o, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
-	if err := o.Fulfill(); err != nil {
+	if err := o.Accept(); err != nil {
 		return nil, err
 	}
 	if err := s.repo.Save(ctx, o); err != nil {
@@ -102,12 +102,26 @@ func (s *Service) Fulfill(ctx context.Context, id ID) (*Order, error) {
 	return o, nil
 }
 
-func (s *Service) Cancel(ctx context.Context, id ID) (*Order, error) {
+func (s *Service) StartProgress(ctx context.Context, id ID) (*Order, error) {
 	o, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
-	if err := o.Cancel(); err != nil {
+	if err := o.StartProgress(); err != nil {
+		return nil, err
+	}
+	if err := s.repo.Save(ctx, o); err != nil {
+		return nil, err
+	}
+	return o, nil
+}
+
+func (s *Service) Finish(ctx context.Context, id ID) (*Order, error) {
+	o, err := s.repo.FindByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if err := o.Finish(); err != nil {
 		return nil, err
 	}
 	if err := s.repo.Save(ctx, o); err != nil {

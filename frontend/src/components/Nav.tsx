@@ -28,8 +28,13 @@ export default function Nav() {
           History
         </Link>
         {isOwner && (
+          <Link to="/admin/orders" className="hidden sm:block text-sm text-[#5c3d1e] hover:text-[#3d2b1a]">
+            Orders
+          </Link>
+        )}
+        {isOwner && (
           <Link to="/admin/products" className="hidden sm:block text-sm text-[#5c3d1e] hover:text-[#3d2b1a]">
-            Manage
+            Products
           </Link>
         )}
         <Link
