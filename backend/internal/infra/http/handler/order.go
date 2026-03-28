@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/fhardow/bread-order/internal/domain/order"
+	"github.com/fhardow/bread-order/internal/infra/http/middleware"
 	"github.com/fhardow/bread-order/internal/infra/http/respond"
 	domerrors "github.com/fhardow/bread-order/pkg/errors"
 	"github.com/gin-gonic/gin"
@@ -62,16 +63,11 @@ func toOrderResponse(o *order.Order) orderResponse {
 }
 
 func (h *OrderHandler) Create(c *gin.Context) {
-	var req struct {
-		UserID string `json:"user_id" binding:"required"`
-	}
-	if err := c.ShouldBindJSON(&req); err != nil {
-		respond.Error(c, domerrors.BadRequest("%s", err.Error()))
-		return
-	}
-	userID, err := uuid.Parse(req.UserID)
+	subRaw, _ := c.Get(middleware.UserIDKey)
+	sub, _ := subRaw.(string)
+	userID, err := uuid.Parse(sub)
 	if err != nil {
-		respond.Error(c, domerrors.BadRequest("invalid user ID"))
+		respond.Error(c, domerrors.BadRequest("invalid user ID in token"))
 		return
 	}
 	o, err := h.svc.Create(c.Request.Context(), userID)

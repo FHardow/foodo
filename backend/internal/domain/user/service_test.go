@@ -25,10 +25,12 @@ func TestService_Register_Success(t *testing.T) {
 	repo := mock.NewUserRepo()
 	svc := newUserService(repo)
 
-	u, err := svc.Register(context.Background(), "Alice", "alice@example.com", "+1")
+	id := uuid.New()
+	u, err := svc.Register(context.Background(), id, "Alice", "alice@example.com", "+1")
 	require.NoError(t, err)
 	require.NotNil(t, u)
 
+	assert.Equal(t, id, u.ID())
 	assert.Equal(t, "Alice", u.Name())
 	assert.Equal(t, "alice@example.com", u.Email())
 
@@ -42,10 +44,10 @@ func TestService_Register_ConflictOnDuplicateEmail(t *testing.T) {
 	repo := mock.NewUserRepo()
 	svc := newUserService(repo)
 
-	_, err := svc.Register(context.Background(), "Alice", "alice@example.com", "")
+	_, err := svc.Register(context.Background(), uuid.New(), "Alice", "alice@example.com", "")
 	require.NoError(t, err)
 
-	_, err = svc.Register(context.Background(), "Alicia", "alice@example.com", "")
+	_, err = svc.Register(context.Background(), uuid.New(), "Alicia", "alice@example.com", "")
 	require.Error(t, err)
 	assert.True(t, domerrors.Is(err, domerrors.ErrConflict))
 }
@@ -54,7 +56,7 @@ func TestService_Register_ValidationError(t *testing.T) {
 	repo := mock.NewUserRepo()
 	svc := newUserService(repo)
 
-	_, err := svc.Register(context.Background(), "", "alice@example.com", "")
+	_, err := svc.Register(context.Background(), uuid.New(), "", "alice@example.com", "")
 	require.Error(t, err)
 	assert.True(t, domerrors.Is(err, domerrors.ErrBadRequest))
 }
@@ -64,7 +66,7 @@ func TestService_Register_RepoSaveError(t *testing.T) {
 	repo.ErrSave = errors.New("db unavailable")
 	svc := newUserService(repo)
 
-	_, err := svc.Register(context.Background(), "Alice", "alice@example.com", "")
+	_, err := svc.Register(context.Background(), uuid.New(), "Alice", "alice@example.com", "")
 	require.Error(t, err)
 	assert.Equal(t, "db unavailable", err.Error())
 }
@@ -74,7 +76,7 @@ func TestService_Register_RepoFindByEmailError(t *testing.T) {
 	repo.ErrFindByEmail = errors.New("db error")
 	svc := newUserService(repo)
 
-	_, err := svc.Register(context.Background(), "Alice", "alice@example.com", "")
+	_, err := svc.Register(context.Background(), uuid.New(), "Alice", "alice@example.com", "")
 	require.Error(t, err)
 	assert.Equal(t, "db error", err.Error())
 }
@@ -87,7 +89,7 @@ func TestService_GetByID_Success(t *testing.T) {
 	repo := mock.NewUserRepo()
 	svc := newUserService(repo)
 
-	u, _ := svc.Register(context.Background(), "Bob", "bob@example.com", "")
+	u, _ := svc.Register(context.Background(), uuid.New(), "Bob", "bob@example.com", "")
 
 	found, err := svc.GetByID(context.Background(), u.ID())
 	require.NoError(t, err)
@@ -120,8 +122,8 @@ func TestService_List_MultipleUsers(t *testing.T) {
 	repo := mock.NewUserRepo()
 	svc := newUserService(repo)
 
-	svc.Register(context.Background(), "Alice", "alice@example.com", "")
-	svc.Register(context.Background(), "Bob", "bob@example.com", "")
+	svc.Register(context.Background(), uuid.New(), "Alice", "alice@example.com", "")
+	svc.Register(context.Background(), uuid.New(), "Bob", "bob@example.com", "")
 
 	users, err := svc.List(context.Background())
 	require.NoError(t, err)
@@ -145,7 +147,7 @@ func TestService_UpdateContact_Success(t *testing.T) {
 	repo := mock.NewUserRepo()
 	svc := newUserService(repo)
 
-	u, _ := svc.Register(context.Background(), "Alice", "alice@example.com", "111")
+	u, _ := svc.Register(context.Background(), uuid.New(), "Alice", "alice@example.com", "111")
 
 	updated, err := svc.UpdateContact(context.Background(), u.ID(), "Alicia", "alicia@example.com", "999")
 	require.NoError(t, err)
@@ -170,7 +172,7 @@ func TestService_UpdateContact_ValidationError(t *testing.T) {
 	repo := mock.NewUserRepo()
 	svc := newUserService(repo)
 
-	u, _ := svc.Register(context.Background(), "Alice", "alice@example.com", "")
+	u, _ := svc.Register(context.Background(), uuid.New(), "Alice", "alice@example.com", "")
 
 	_, err := svc.UpdateContact(context.Background(), u.ID(), "", "alice@example.com", "")
 	require.Error(t, err)
@@ -181,7 +183,7 @@ func TestService_UpdateContact_SaveError(t *testing.T) {
 	repo := mock.NewUserRepo()
 	svc := newUserService(repo)
 
-	u, _ := svc.Register(context.Background(), "Alice", "alice@example.com", "")
+	u, _ := svc.Register(context.Background(), uuid.New(), "Alice", "alice@example.com", "")
 
 	repo.ErrSave = errors.New("write failed")
 	_, err := svc.UpdateContact(context.Background(), u.ID(), "Alicia", "alicia@example.com", "")

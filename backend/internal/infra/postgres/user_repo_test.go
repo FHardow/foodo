@@ -18,7 +18,7 @@ func TestUserRepo_SaveAndFindByID(t *testing.T) {
 	repo := repopostgres.NewUserRepo(db)
 	ctx := context.Background()
 
-	u, err := user.New("Alice", "alice@example.com", "+1234")
+	u, err := user.New(uuid.New(), "Alice", "alice@example.com", "+1234")
 	require.NoError(t, err)
 
 	require.NoError(t, repo.Save(ctx, u))
@@ -46,7 +46,7 @@ func TestUserRepo_FindByEmail(t *testing.T) {
 	repo := repopostgres.NewUserRepo(db)
 	ctx := context.Background()
 
-	u, _ := user.New("Bob", "bob@example.com", "")
+	u, _ := user.New(uuid.New(), "Bob", "bob@example.com", "")
 	require.NoError(t, repo.Save(ctx, u))
 
 	found, err := repo.FindByEmail(ctx, "bob@example.com")
@@ -68,8 +68,8 @@ func TestUserRepo_List(t *testing.T) {
 	repo := repopostgres.NewUserRepo(db)
 	ctx := context.Background()
 
-	u1, _ := user.New("Alice", "alice2@example.com", "")
-	u2, _ := user.New("Bob", "bob2@example.com", "")
+	u1, _ := user.New(uuid.New(), "Alice", "alice2@example.com", "")
+	u2, _ := user.New(uuid.New(), "Bob", "bob2@example.com", "")
 	require.NoError(t, repo.Save(ctx, u1))
 	require.NoError(t, repo.Save(ctx, u2))
 
@@ -92,7 +92,7 @@ func TestUserRepo_Save_UpdatesExistingRecord(t *testing.T) {
 	repo := repopostgres.NewUserRepo(db)
 	ctx := context.Background()
 
-	u, _ := user.New("Alice", "alice3@example.com", "")
+	u, _ := user.New(uuid.New(), "Alice", "alice3@example.com", "")
 	require.NoError(t, repo.Save(ctx, u))
 
 	require.NoError(t, u.UpdateContact("Alicia", "alicia@example.com", "999"))
@@ -109,7 +109,7 @@ func TestUserRepo_Delete(t *testing.T) {
 	repo := repopostgres.NewUserRepo(db)
 	ctx := context.Background()
 
-	u, _ := user.New("DeleteMe", "deleteme@example.com", "")
+	u, _ := user.New(uuid.New(), "DeleteMe", "deleteme@example.com", "")
 	require.NoError(t, repo.Save(ctx, u))
 
 	require.NoError(t, repo.Delete(ctx, u.ID()))

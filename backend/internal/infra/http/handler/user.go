@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/fhardow/bread-order/internal/domain/user"
+	"github.com/fhardow/bread-order/internal/infra/http/middleware"
 	"github.com/fhardow/bread-order/internal/infra/http/respond"
 	domerrors "github.com/fhardow/bread-order/pkg/errors"
 	"github.com/gin-gonic/gin"
@@ -42,6 +43,13 @@ func toUserResponse(u *user.User) userResponse {
 }
 
 func (h *UserHandler) Register(c *gin.Context) {
+	subRaw, _ := c.Get(middleware.UserIDKey)
+	sub, _ := subRaw.(string)
+	id, err := uuid.Parse(sub)
+	if err != nil {
+		respond.Error(c, domerrors.BadRequest("invalid user ID in token"))
+		return
+	}
 	var req struct {
 		Name  string `json:"name"  binding:"required"`
 		Email string `json:"email" binding:"required,email"`
@@ -51,12 +59,28 @@ func (h *UserHandler) Register(c *gin.Context) {
 		respond.Error(c, domerrors.BadRequest("%s", err.Error()))
 		return
 	}
-	u, err := h.svc.Register(c.Request.Context(), req.Name, req.Email, req.Phone)
+	u, err := h.svc.Register(c.Request.Context(), id, req.Name, req.Email, req.Phone)
 	if err != nil {
 		respond.Error(c, err)
 		return
 	}
 	respond.JSON(c, http.StatusCreated, toUserResponse(u))
+}
+
+func (h *UserHandler) Me(c *gin.Context) {
+	subRaw, _ := c.Get(middleware.UserIDKey)
+	sub, _ := subRaw.(string)
+	id, err := uuid.Parse(sub)
+	if err != nil {
+		respond.Error(c, domerrors.BadRequest("invalid user ID in token"))
+		return
+	}
+	u, err := h.svc.GetByID(c.Request.Context(), id)
+	if err != nil {
+		respond.Error(c, err)
+		return
+	}
+	respond.JSON(c, http.StatusOK, toUserResponse(u))
 }
 
 func (h *UserHandler) GetByID(c *gin.Context) {
@@ -90,6 +114,21 @@ func (h *UserHandler) Update(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		respond.Error(c, domerrors.BadRequest("invalid user ID"))
+		return
+	}
+	subRaw, _ := c.Get(middleware.UserIDKey)
+	sub, _ := subRaw.(string)
+	rolesRaw, _ := c.Get(middleware.RolesKey)
+	roles, _ := rolesRaw.([]string)
+	isOwner := false
+	for _, r := range roles {
+		if r == "owner" {
+			isOwner = true
+			break
+		}
+	}
+	if !isOwner && sub != id.String() {
+		respond.Error(c, domerrors.Forbidden("cannot update another user's profile"))
 		return
 	}
 	var req struct {

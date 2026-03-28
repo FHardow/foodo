@@ -38,6 +38,7 @@ func NewRouter(
 		u := v1.Group("/users")
 		u.GET("", users.List)
 		u.POST("", users.Register)
+		u.GET("/me", users.Me)
 		u.GET("/:id", users.GetByID)
 		u.PUT("/:id", users.Update)
 
