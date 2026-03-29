@@ -9,7 +9,8 @@ type Order struct {
 	CreatedAt time.Time `gorm:"not null"`
 	UpdatedAt time.Time `gorm:"not null"`
 
-	Items []OrderItem `gorm:"foreignKey:OrderID;constraint:OnDelete:CASCADE"`
+	Items    []OrderItem `gorm:"foreignKey:OrderID;constraint:OnDelete:CASCADE"`
+	UserName string      `gorm:"-"` // populated via JOIN with users table, not persisted
 }
 
 func (Order) TableName() string { return "orders" }

@@ -13,10 +13,11 @@ type ID = uuid.UUID
 type Status string
 
 const (
-	StatusPending   Status = "pending"
-	StatusConfirmed Status = "confirmed"
-	StatusFulfilled Status = "fulfilled"
-	StatusCancelled Status = "cancelled"
+	StatusPending  Status = "pending"
+	StatusCreated  Status = "created"
+	StatusAccepted Status = "accepted"
+	StatusOngoing  Status = "ongoing"
+	StatusFinished Status = "finished"
 )
 
 type Item struct {
@@ -34,6 +35,7 @@ func (i Item) TotalCents() int64 {
 type Order struct {
 	id        ID
 	userID    uuid.UUID
+	userName  string
 	status    Status
 	items     []Item
 	createdAt time.Time
@@ -55,10 +57,11 @@ func New(userID uuid.UUID) (*Order, error) {
 	}, nil
 }
 
-func Reconstitute(id, userID uuid.UUID, status Status, items []Item, createdAt, updatedAt time.Time) *Order {
+func Reconstitute(id, userID uuid.UUID, userName string, status Status, items []Item, createdAt, updatedAt time.Time) *Order {
 	return &Order{
 		id:        id,
 		userID:    userID,
+		userName:  userName,
 		status:    status,
 		items:     items,
 		createdAt: createdAt,
@@ -68,6 +71,7 @@ func Reconstitute(id, userID uuid.UUID, status Status, items []Item, createdAt, 
 
 func (o *Order) ID() ID               { return o.id }
 func (o *Order) UserID() uuid.UUID    { return o.userID }
+func (o *Order) UserName() string     { return o.userName }
 func (o *Order) Status() Status       { return o.status }
 func (o *Order) Items() []Item        { return o.items }
 func (o *Order) CreatedAt() time.Time { return o.createdAt }
@@ -120,6 +124,7 @@ func (o *Order) RemoveItem(productID product.ID) error {
 	return domerrors.NotFound("item with product ID %s not found in order", productID)
 }
 
+// Confirm transitions a pending order to created, making it visible to the owner.
 func (o *Order) Confirm() error {
 	if o.status != StatusPending {
 		return domerrors.BadRequest("only pending orders can be confirmed")
@@ -127,28 +132,37 @@ func (o *Order) Confirm() error {
 	if len(o.items) == 0 {
 		return domerrors.BadRequest("cannot confirm an empty order")
 	}
-	o.status = StatusConfirmed
+	o.status = StatusCreated
 	o.updatedAt = time.Now().UTC()
 	return nil
 }
 
-func (o *Order) Fulfill() error {
-	if o.status != StatusConfirmed {
-		return domerrors.BadRequest("only confirmed orders can be fulfilled")
+// Accept transitions a created order to accepted by the owner.
+func (o *Order) Accept() error {
+	if o.status != StatusCreated {
+		return domerrors.BadRequest("only created orders can be accepted")
 	}
-	o.status = StatusFulfilled
+	o.status = StatusAccepted
 	o.updatedAt = time.Now().UTC()
 	return nil
 }
 
-func (o *Order) Cancel() error {
-	if o.status == StatusFulfilled {
-		return domerrors.BadRequest("fulfilled orders cannot be cancelled")
+// StartProgress transitions an accepted order to ongoing.
+func (o *Order) StartProgress() error {
+	if o.status != StatusAccepted {
+		return domerrors.BadRequest("only accepted orders can be started")
 	}
-	if o.status == StatusCancelled {
-		return domerrors.BadRequest("order is already cancelled")
+	o.status = StatusOngoing
+	o.updatedAt = time.Now().UTC()
+	return nil
+}
+
+// Finish transitions an ongoing order to finished.
+func (o *Order) Finish() error {
+	if o.status != StatusOngoing {
+		return domerrors.BadRequest("only ongoing orders can be finished")
 	}
-	o.status = StatusCancelled
+	o.status = StatusFinished
 	o.updatedAt = time.Now().UTC()
 	return nil
 }

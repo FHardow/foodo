@@ -32,6 +32,7 @@ type orderItemResponse struct {
 type orderResponse struct {
 	ID         string              `json:"id"`
 	UserID     string              `json:"user_id"`
+	UserName   string              `json:"user_name,omitempty"`
 	Status     string              `json:"status"`
 	Items      []orderItemResponse `json:"items"`
 	TotalCents int64               `json:"total_cents"`
@@ -54,6 +55,7 @@ func toOrderResponse(o *order.Order) orderResponse {
 	return orderResponse{
 		ID:         o.ID().String(),
 		UserID:     o.UserID().String(),
+		UserName:   o.UserName(),
 		Status:     string(o.Status()),
 		Items:      items,
 		TotalCents: o.TotalCents(),
@@ -177,13 +179,13 @@ func (h *OrderHandler) Confirm(c *gin.Context) {
 	respond.JSON(c, http.StatusOK, toOrderResponse(o))
 }
 
-func (h *OrderHandler) Fulfill(c *gin.Context) {
+func (h *OrderHandler) Accept(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		respond.Error(c, domerrors.BadRequest("invalid order ID"))
 		return
 	}
-	o, err := h.svc.Fulfill(c.Request.Context(), id)
+	o, err := h.svc.Accept(c.Request.Context(), id)
 	if err != nil {
 		respond.Error(c, err)
 		return
@@ -191,13 +193,27 @@ func (h *OrderHandler) Fulfill(c *gin.Context) {
 	respond.JSON(c, http.StatusOK, toOrderResponse(o))
 }
 
-func (h *OrderHandler) Cancel(c *gin.Context) {
+func (h *OrderHandler) StartProgress(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		respond.Error(c, domerrors.BadRequest("invalid order ID"))
 		return
 	}
-	o, err := h.svc.Cancel(c.Request.Context(), id)
+	o, err := h.svc.StartProgress(c.Request.Context(), id)
+	if err != nil {
+		respond.Error(c, err)
+		return
+	}
+	respond.JSON(c, http.StatusOK, toOrderResponse(o))
+}
+
+func (h *OrderHandler) Finish(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		respond.Error(c, domerrors.BadRequest("invalid order ID"))
+		return
+	}
+	o, err := h.svc.Finish(c.Request.Context(), id)
 	if err != nil {
 		respond.Error(c, err)
 		return

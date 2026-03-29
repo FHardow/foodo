@@ -21,7 +21,11 @@ func NewOrderRepo(db *gorm.DB) order.Repository {
 
 func (r *orderRepo) FindByID(ctx context.Context, id order.ID) (*order.Order, error) {
 	var m models.Order
-	err := dbFromCtx(ctx, r.db).Preload("Items").First(&m, "id = ?", id.String()).Error
+	err := dbFromCtx(ctx, r.db).
+		Joins("LEFT JOIN users ON users.id = orders.user_id").
+		Select("orders.*, users.name AS user_name").
+		Preload("Items").
+		First(&m, "orders.id = ?", id.String()).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, domerrors.NotFound("order %s not found", id)
@@ -33,7 +37,13 @@ func (r *orderRepo) FindByID(ctx context.Context, id order.ID) (*order.Order, er
 
 func (r *orderRepo) ListByUser(ctx context.Context, userID uuid.UUID) ([]*order.Order, error) {
 	var ms []models.Order
-	err := dbFromCtx(ctx, r.db).Preload("Items").Where("user_id = ?", userID.String()).Order("created_at desc").Find(&ms).Error
+	err := dbFromCtx(ctx, r.db).
+		Joins("LEFT JOIN users ON users.id = orders.user_id").
+		Select("orders.*, users.name AS user_name").
+		Preload("Items").
+		Where("orders.user_id = ?", userID.String()).
+		Order("orders.created_at desc").
+		Find(&ms).Error
 	if err != nil {
 		return nil, err
 	}
@@ -42,7 +52,12 @@ func (r *orderRepo) ListByUser(ctx context.Context, userID uuid.UUID) ([]*order.
 
 func (r *orderRepo) List(ctx context.Context) ([]*order.Order, error) {
 	var ms []models.Order
-	err := dbFromCtx(ctx, r.db).Preload("Items").Order("created_at desc").Find(&ms).Error
+	err := dbFromCtx(ctx, r.db).
+		Joins("LEFT JOIN users ON users.id = orders.user_id").
+		Select("orders.*, users.name AS user_name").
+		Preload("Items").
+		Order("orders.created_at desc").
+		Find(&ms).Error
 	if err != nil {
 		return nil, err
 	}
@@ -96,7 +111,7 @@ func orderToDomain(m *models.Order) (*order.Order, error) {
 			UnitPriceCents: mi.UnitPriceCents,
 		})
 	}
-	return order.Reconstitute(id, userID, order.Status(m.Status), items, m.CreatedAt, m.UpdatedAt), nil
+	return order.Reconstitute(id, userID, m.UserName, order.Status(m.Status), items, m.CreatedAt, m.UpdatedAt), nil
 }
 
 func ordersSliceToDomain(ms []models.Order) ([]*order.Order, error) {

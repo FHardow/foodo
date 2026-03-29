@@ -27,3 +27,15 @@ export const removeItem = (orderId: string, productId: string) =>
 
 export const confirmOrder = (orderId: string) =>
   apiFetch<Order>(`/api/v1/orders/${orderId}/confirm`, { method: 'POST' })
+
+export const getAllOrders = () =>
+  apiFetch<Order[]>('/api/v1/orders')
+
+export const acceptOrder = (orderId: string) =>
+  apiFetch<Order>(`/api/v1/orders/${orderId}/accept`, { method: 'POST' })
+
+export const startOrder = (orderId: string) =>
+  apiFetch<Order>(`/api/v1/orders/${orderId}/start`, { method: 'POST' })
+
+export const finishOrder = (orderId: string) =>
+  apiFetch<Order>(`/api/v1/orders/${orderId}/finish`, { method: 'POST' })

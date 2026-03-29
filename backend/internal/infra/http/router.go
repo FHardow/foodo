@@ -58,8 +58,9 @@ func NewRouter(
 		o.POST("/:id/items", orders.AddItem)
 		o.DELETE("/:id/items/:productID", orders.RemoveItem)
 		o.POST("/:id/confirm", orders.Confirm)
-		o.POST("/:id/fulfill", orders.Fulfill)
-		o.POST("/:id/cancel", orders.Cancel)
+		o.POST("/:id/accept", ownerOnly, orders.Accept)
+		o.POST("/:id/start", ownerOnly, orders.StartProgress)
+		o.POST("/:id/finish", ownerOnly, orders.Finish)
 	}
 
 	return r
