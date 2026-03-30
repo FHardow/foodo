@@ -17,8 +17,10 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-const UserIDKey = "userID"
-const RolesKey = "roles"
+const UserIDKey    = "userID"
+const RolesKey     = "roles"
+const UserNameKey  = "userName"
+const UserEmailKey = "userEmail"
 
 // jwksCache caches RSA public keys fetched from a JWKS endpoint.
 type jwksCache struct {
@@ -153,7 +155,7 @@ func JWTAuth(jwksURL string) gin.HandlerFunc {
 		}
 		tokenStr := strings.TrimPrefix(authHeader, "Bearer ")
 
-		sub, roles, err := parseAndValidate(tokenStr, cache)
+		sub, name, email, roles, err := parseAndValidate(tokenStr, cache)
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid token"})
 			return
@@ -161,6 +163,8 @@ func JWTAuth(jwksURL string) gin.HandlerFunc {
 
 		c.Set(UserIDKey, sub)
 		c.Set(RolesKey, roles)
+		c.Set(UserNameKey, name)
+		c.Set(UserEmailKey, email)
 		c.Next()
 	}
 }
@@ -177,56 +181,58 @@ type realmAccess struct {
 type tokenClaims struct {
 	Sub         string      `json:"sub"`
 	Exp         int64       `json:"exp"`
+	Name        string      `json:"name"`
+	Email       string      `json:"email"`
 	RealmAccess realmAccess `json:"realm_access"`
 }
 
-func parseAndValidate(raw string, cache *jwksCache) (string, []string, error) {
+func parseAndValidate(raw string, cache *jwksCache) (sub, name, email string, roles []string, err error) {
 	parts := strings.Split(raw, ".")
 	if len(parts) != 3 {
-		return "", nil, fmt.Errorf("malformed JWT")
+		return "", "", "", nil, fmt.Errorf("malformed JWT")
 	}
 
 	headerBytes, err := base64.RawURLEncoding.DecodeString(parts[0])
 	if err != nil {
-		return "", nil, err
+		return "", "", "", nil, err
 	}
 	var hdr tokenHeader
 	if err := json.Unmarshal(headerBytes, &hdr); err != nil {
-		return "", nil, err
+		return "", "", "", nil, err
 	}
 	if hdr.Alg != "RS256" {
-		return "", nil, fmt.Errorf("unsupported alg: %s", hdr.Alg)
+		return "", "", "", nil, fmt.Errorf("unsupported alg: %s", hdr.Alg)
 	}
 
 	pub, err := cache.getKey(hdr.Kid)
 	if err != nil {
-		return "", nil, err
+		return "", "", "", nil, err
 	}
 
 	sigBytes, err := base64.RawURLEncoding.DecodeString(parts[2])
 	if err != nil {
-		return "", nil, err
+		return "", "", "", nil, err
 	}
 	digest := sha256.Sum256([]byte(parts[0] + "." + parts[1]))
 	if err := rsa.VerifyPKCS1v15(pub, crypto.SHA256, digest[:], sigBytes); err != nil {
-		return "", nil, fmt.Errorf("signature verification failed: %w", err)
+		return "", "", "", nil, fmt.Errorf("signature verification failed: %w", err)
 	}
 
 	payloadBytes, err := base64.RawURLEncoding.DecodeString(parts[1])
 	if err != nil {
-		return "", nil, err
+		return "", "", "", nil, err
 	}
 	var claims tokenClaims
 	if err := json.Unmarshal(payloadBytes, &claims); err != nil {
-		return "", nil, err
+		return "", "", "", nil, err
 	}
 
 	if claims.Exp < time.Now().Unix() {
-		return "", nil, fmt.Errorf("token expired")
+		return "", "", "", nil, fmt.Errorf("token expired")
 	}
 	if claims.Sub == "" {
-		return "", nil, fmt.Errorf("missing sub")
+		return "", "", "", nil, fmt.Errorf("missing sub")
 	}
 
-	return claims.Sub, claims.RealmAccess.Roles, nil
+	return claims.Sub, claims.Name, claims.Email, claims.RealmAccess.Roles, nil
 }

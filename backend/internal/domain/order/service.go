@@ -2,21 +2,31 @@ package order
 
 import (
 	"context"
+	"errors"
 
 	"github.com/fhardow/bread-order/internal/domain/product"
+	"github.com/fhardow/bread-order/internal/domain/user"
+	domerrors "github.com/fhardow/bread-order/pkg/errors"
 	"github.com/google/uuid"
 )
 
 type Service struct {
 	repo        Repository
 	productRepo product.Repository
+	userRepo    user.Repository
 }
 
-func NewService(repo Repository, productRepo product.Repository) *Service {
-	return &Service{repo: repo, productRepo: productRepo}
+func NewService(repo Repository, productRepo product.Repository, userRepo user.Repository) *Service {
+	return &Service{repo: repo, productRepo: productRepo, userRepo: userRepo}
 }
 
 func (s *Service) Create(ctx context.Context, userID uuid.UUID) (*Order, error) {
+	if _, err := s.userRepo.FindByID(ctx, userID); err != nil {
+		if errors.Is(err, domerrors.ErrNotFound) {
+			return nil, domerrors.BadRequest("user profile not found — please register before placing an order")
+		}
+		return nil, err
+	}
 	o, err := New(userID)
 	if err != nil {
 		return nil, err

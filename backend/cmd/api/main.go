@@ -42,11 +42,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err := postgres.Migrate(db); err != nil {
-		log.Error("failed to run migrations", "err", err)
-		os.Exit(1)
-	}
-
 	// Repositories
 	userRepo    := postgres.NewUserRepo(db)
 	productRepo := postgres.NewProductRepo(db)
@@ -55,14 +50,14 @@ func main() {
 	// Domain services
 	userSvc    := user.NewService(userRepo)
 	productSvc := product.NewService(productRepo)
-	orderSvc   := order.NewService(orderRepo, productRepo)
+	orderSvc   := order.NewService(orderRepo, productRepo, userRepo)
 
 	// HTTP handlers
 	userHandler    := handler.NewUserHandler(userSvc)
 	productHandler := handler.NewProductHandler(productSvc, uploadsDir)
 	orderHandler   := handler.NewOrderHandler(orderSvc)
 
-	router := apphttp.NewRouter(userHandler, productHandler, orderHandler, cfg.KeycloakURL, cfg.KeycloakRealm, uploadsDir)
+	router := apphttp.NewRouter(userHandler, productHandler, orderHandler, userSvc, cfg.KeycloakURL, cfg.KeycloakRealm, uploadsDir)
 	srv    := apphttp.NewServer(cfg.Port, router, log)
 
 	// Graceful shutdown

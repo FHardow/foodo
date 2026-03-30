@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/fhardow/bread-order/internal/infra/postgres/models"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -34,13 +33,4 @@ func Connect(dsn, env string) (*gorm.DB, error) {
 	sqlDB.SetConnMaxLifetime(5 * time.Minute)
 
 	return db, nil
-}
-
-func Migrate(db *gorm.DB) error {
-	return db.AutoMigrate(
-		&models.User{},
-		&models.Product{},
-		&models.Order{},
-		&models.OrderItem{},
-	)
 }

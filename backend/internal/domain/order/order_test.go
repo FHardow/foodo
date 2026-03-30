@@ -138,7 +138,7 @@ func TestOrder_Confirm_Success(t *testing.T) {
 	time.Sleep(time.Millisecond)
 	err := o.Confirm()
 	require.NoError(t, err)
-	assert.Equal(t, order.StatusConfirmed, o.Status())
+	assert.Equal(t, order.StatusCreated, o.Status())
 	assert.True(t, o.UpdatedAt().After(before))
 }
 
@@ -159,58 +159,62 @@ func TestOrder_Confirm_AlreadyConfirmed(t *testing.T) {
 	assert.True(t, domerrors.Is(err, domerrors.ErrBadRequest))
 }
 
-func TestOrder_Fulfill_Success(t *testing.T) {
+func TestOrder_Accept_Success(t *testing.T) {
 	o := newValidOrder(t)
 	pid, name, price := newProduct(t)
 	require.NoError(t, o.AddItem(pid, name, "loaf", 1, price))
 	require.NoError(t, o.Confirm())
 	before := o.UpdatedAt()
 	time.Sleep(time.Millisecond)
-	err := o.Fulfill()
+	err := o.Accept()
 	require.NoError(t, err)
-	assert.Equal(t, order.StatusFulfilled, o.Status())
+	assert.Equal(t, order.StatusAccepted, o.Status())
 	assert.True(t, o.UpdatedAt().After(before))
 }
 
-func TestOrder_Fulfill_NotConfirmed(t *testing.T) {
+func TestOrder_Accept_NotCreated(t *testing.T) {
 	o := newValidOrder(t)
-	err := o.Fulfill()
+	err := o.Accept()
 	require.Error(t, err)
 	assert.True(t, domerrors.Is(err, domerrors.ErrBadRequest))
 }
 
-func TestOrder_Cancel_FromPending(t *testing.T) {
-	o := newValidOrder(t)
-	err := o.Cancel()
-	require.NoError(t, err)
-	assert.Equal(t, order.StatusCancelled, o.Status())
-}
-
-func TestOrder_Cancel_FromConfirmed(t *testing.T) {
+func TestOrder_StartProgress_Success(t *testing.T) {
 	o := newValidOrder(t)
 	pid, name, price := newProduct(t)
 	require.NoError(t, o.AddItem(pid, name, "loaf", 1, price))
 	require.NoError(t, o.Confirm())
-	err := o.Cancel()
+	require.NoError(t, o.Accept())
+	err := o.StartProgress()
 	require.NoError(t, err)
-	assert.Equal(t, order.StatusCancelled, o.Status())
+	assert.Equal(t, order.StatusOngoing, o.Status())
 }
 
-func TestOrder_Cancel_FromFulfilled(t *testing.T) {
+func TestOrder_StartProgress_NotAccepted(t *testing.T) {
 	o := newValidOrder(t)
-	pid, name, price := newProduct(t)
-	require.NoError(t, o.AddItem(pid, name, "loaf", 1, price))
-	require.NoError(t, o.Confirm())
-	require.NoError(t, o.Fulfill())
-	err := o.Cancel()
+	err := o.StartProgress()
 	require.Error(t, err)
 	assert.True(t, domerrors.Is(err, domerrors.ErrBadRequest))
 }
 
-func TestOrder_Cancel_AlreadyCancelled(t *testing.T) {
+func TestOrder_Finish_Success(t *testing.T) {
 	o := newValidOrder(t)
-	require.NoError(t, o.Cancel())
-	err := o.Cancel()
+	pid, name, price := newProduct(t)
+	require.NoError(t, o.AddItem(pid, name, "loaf", 1, price))
+	require.NoError(t, o.Confirm())
+	require.NoError(t, o.Accept())
+	require.NoError(t, o.StartProgress())
+	before := o.UpdatedAt()
+	time.Sleep(time.Millisecond)
+	err := o.Finish()
+	require.NoError(t, err)
+	assert.Equal(t, order.StatusFinished, o.Status())
+	assert.True(t, o.UpdatedAt().After(before))
+}
+
+func TestOrder_Finish_NotOngoing(t *testing.T) {
+	o := newValidOrder(t)
+	err := o.Finish()
 	require.Error(t, err)
 	assert.True(t, domerrors.Is(err, domerrors.ErrBadRequest))
 }
@@ -270,11 +274,11 @@ func TestOrder_Reconstitute_PreservesAllFields(t *testing.T) {
 	created := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
 	updated := time.Date(2024, 6, 1, 0, 0, 0, 0, time.UTC)
 
-	o := order.Reconstitute(id, userID, order.StatusConfirmed, items, created, updated)
+	o := order.Reconstitute(id, userID, "", order.StatusCreated, items, created, updated)
 
 	assert.Equal(t, id, o.ID())
 	assert.Equal(t, userID, o.UserID())
-	assert.Equal(t, order.StatusConfirmed, o.Status())
+	assert.Equal(t, order.StatusCreated, o.Status())
 	assert.Equal(t, created, o.CreatedAt())
 	assert.Equal(t, updated, o.UpdatedAt())
 	require.Len(t, o.Items(), 1)

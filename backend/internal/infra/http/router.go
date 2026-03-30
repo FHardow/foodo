@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/fhardow/bread-order/internal/domain/user"
 	"github.com/fhardow/bread-order/internal/infra/http/handler"
 	"github.com/fhardow/bread-order/internal/infra/http/middleware"
 	"github.com/gin-contrib/cors"
@@ -14,6 +15,7 @@ func NewRouter(
 	users *handler.UserHandler,
 	products *handler.ProductHandler,
 	orders *handler.OrderHandler,
+	userSvc *user.Service,
 	keycloakURL string,
 	keycloakRealm string,
 	uploadsDir string,
@@ -33,7 +35,7 @@ func NewRouter(
 	ownerOnly := middleware.RequireOwner()
 
 	v1 := r.Group("/api/v1")
-	v1.Use(middleware.JWTAuth(jwksURL))
+	v1.Use(middleware.JWTAuth(jwksURL), middleware.SyncUser(userSvc))
 	{
 		u := v1.Group("/users")
 		u.GET("", users.List)
