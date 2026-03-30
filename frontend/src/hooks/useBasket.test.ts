@@ -14,7 +14,7 @@ function makeWrapper() {
 }
 
 const pendingOrder = (id = 'order-1') => ({
-  id, status: 'pending' as const, items: [], created_at: new Date().toISOString(),
+  id, status: 'pending' as const, user_id: 'user-1', items: [], created_at: new Date().toISOString(),
 })
 
 beforeEach(() => {
@@ -38,7 +38,7 @@ describe('useBasket — init validation', () => {
   it('clears basket id if order is not pending', async () => {
     useBasketStore.setState({ basketOrderId: 'confirmed-id' })
     vi.mocked(ordersApi.getOrder).mockResolvedValue({
-      id: 'confirmed-id', status: 'confirmed', items: [], created_at: '',
+      id: 'confirmed-id', status: 'created', user_id: 'user-1', items: [], created_at: '',
     })
 
     renderHook(() => useBasket(), { wrapper: makeWrapper() })
@@ -103,7 +103,7 @@ describe('useBasket — confirm', () => {
     useBasketStore.setState({ basketOrderId: 'order-to-confirm' })
     vi.mocked(ordersApi.getOrder).mockResolvedValue(pendingOrder('order-to-confirm'))
     vi.mocked(ordersApi.confirmOrder).mockResolvedValue({
-      id: 'order-to-confirm', status: 'confirmed', items: [], created_at: '',
+      id: 'order-to-confirm', status: 'created', user_id: 'user-1', items: [], created_at: '',
     })
 
     const { result } = renderHook(() => useBasket(), { wrapper: makeWrapper() })

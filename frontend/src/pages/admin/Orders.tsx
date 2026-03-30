@@ -16,7 +16,6 @@ import { CSS } from '@dnd-kit/utilities'
 import { useState } from 'react'
 import keycloak from '../../auth/keycloak'
 import { getAllOrders, acceptOrder, startOrder, finishOrder } from '../../api/orders'
-import StatusBadge from '../../components/StatusBadge'
 import type { Order } from '../../types'
 
 type KanbanStatus = 'created' | 'accepted' | 'ongoing' | 'finished'
@@ -29,12 +28,6 @@ const COLUMNS: { status: KanbanStatus; label: string }[] = [
 ]
 
 const STATUS_ORDER: KanbanStatus[] = ['created', 'accepted', 'ongoing', 'finished']
-
-const ACTION_LABEL: Partial<Record<KanbanStatus, string>> = {
-  created:  'Accept',
-  accepted: 'Start',
-  ongoing:  'Finish',
-}
 
 // ---- Draggable card ----
 
