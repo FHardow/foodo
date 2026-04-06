@@ -13,7 +13,7 @@ import {
   useSensors,
 } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import keycloak from '../../auth/keycloak'
 import { getAllOrders, acceptOrder, startOrder, finishOrder } from '../../api/orders'
 import type { Order } from '../../types'
@@ -45,6 +45,9 @@ function OrderCard({ order, isDragging }: { order: Order; isDragging?: boolean }
       style={style}
       {...listeners}
       {...attributes}
+      data-testid="order-card"
+      data-order-id={order.id}
+      data-order-status={order.status}
       className="bg-white rounded-lg border border-[#e8ddd0] p-3 cursor-grab active:cursor-grabbing select-none shadow-sm hover:border-[#5c3d1e] transition-colors"
     >
       <CardContent order={order} />
@@ -93,13 +96,15 @@ function KanbanColumn({
   return (
     <div
       ref={setNodeRef}
+      data-testid="kanban-column"
+      data-column-status={status}
       className={`flex flex-col min-h-[200px] rounded-xl p-3 transition-colors ${
         isOver ? 'bg-[#e8ddd0] ring-2 ring-[#5c3d1e]' : 'bg-[#f0e8de]'
       }`}
     >
       <div className="flex items-center justify-between mb-3">
         <h2 className="font-semibold text-sm text-[#3d2b1a]">{label}</h2>
-        <span className="text-xs bg-white text-[#8a6a50] rounded-full px-2 py-0.5">
+        <span data-testid="column-count" className="text-xs bg-white text-[#8a6a50] rounded-full px-2 py-0.5">
           {orders.length}
         </span>
       </div>
@@ -121,11 +126,13 @@ export default function AdminOrders() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [activeId, setActiveId] = useState<string | null>(null)
+  const isOwner = keycloak.hasRealmRole('owner')
 
-  if (!keycloak.hasRealmRole('owner')) {
-    navigate('/')
-    return null
-  }
+  useEffect(() => {
+    if (!isOwner) navigate('/')
+  }, [isOwner, navigate])
+
+  if (!isOwner) return null
 
   const { data: allOrders = [], isLoading, isError } = useQuery({
     queryKey: ['all-orders'],
