@@ -1,6 +1,14 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { apiFetch } from './client'
 
+vi.mock('../auth/keycloak', () => ({
+  default: {
+    updateToken: vi.fn().mockResolvedValue(true),
+    token: 'mock-token',
+    login: vi.fn(),
+  },
+}))
+
 describe('apiFetch', () => {
   beforeEach(() => {
     vi.stubGlobal('fetch', vi.fn())
