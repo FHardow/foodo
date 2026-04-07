@@ -128,16 +128,11 @@ export default function AdminOrders() {
   const [activeId, setActiveId] = useState<string | null>(null)
   const isOwner = keycloak.hasRealmRole('owner')
 
-  useEffect(() => {
-    if (!isOwner) navigate('/')
-  }, [isOwner, navigate])
-
-  if (!isOwner) return null
-
   const { data: allOrders = [], isLoading, isError } = useQuery({
     queryKey: ['all-orders'],
     queryFn: getAllOrders,
     refetchInterval: 30_000,
+    enabled: isOwner,
   })
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ['all-orders'] })
@@ -149,6 +144,12 @@ export default function AdminOrders() {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
   )
+
+  useEffect(() => {
+    if (!isOwner) navigate('/')
+  }, [isOwner, navigate])
+
+  if (!isOwner) return null
 
   // Only show non-pending orders in the kanban
   const kanbanOrders = allOrders.filter(
@@ -183,7 +184,7 @@ export default function AdminOrders() {
   }
 
   if (isLoading) {
-    return <div className="animate-pulse bg-white rounded-lg h-48 border border-[#e8ddd0]" />
+    return <div data-testid="loading-skeleton" className="animate-pulse bg-white rounded-lg h-48 border border-[#e8ddd0]" />
   }
 
   if (isError) {

@@ -260,7 +260,7 @@ test.describe('Kanban board — error states', () => {
 
     await page.goto('/admin/orders')
     // The loading state should show the animate-pulse skeleton
-    await expect(page.locator('.animate-pulse')).toBeVisible()
+    await expect(page.getByTestId('loading-skeleton')).toBeVisible()
 
     resolveOrders()
   })

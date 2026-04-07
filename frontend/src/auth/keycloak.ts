@@ -14,7 +14,7 @@ const keycloak: Keycloak =
         subject: 'e2e-mock-user',
         tokenParsed: { sub: 'e2e-mock-user', name: 'E2E User' },
         hasRealmRole: (role: string) =>
-          (window.__e2eRoles ?? ['owner']).includes(role),
+          (window.__e2eRoles ?? []).includes(role),
         onTokenExpired: undefined,
         updateToken: () => Promise.resolve(true),
         login: () => {},

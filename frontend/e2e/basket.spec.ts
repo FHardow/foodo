@@ -1,11 +1,12 @@
 import { test, expect, setupApiMocks, setRoles } from './fixtures'
 import { BASKET_ORDER, BASKET_ORDER_WITH_ITEMS } from './mocks/data'
+import type { Page } from '@playwright/test'
 
 // Zustand persist uses the `name` option as the localStorage key
 const BASKET_LS_KEY = 'basketOrderId'
 
-function setBasketInStorage(page: Parameters<typeof page.addInitScript>[0], orderId: string) {
-  return (page as Parameters<typeof page.addInitScript>[0]).addInitScript(
+function setBasketInStorage(page: Page, orderId: string) {
+  return page.addInitScript(
     ({ key, id }: { key: string; id: string }) => {
       localStorage.setItem(key, JSON.stringify({ state: { basketOrderId: id }, version: 0 }))
     },
@@ -37,12 +38,7 @@ test.describe('Basket — empty state', () => {
 test.describe('Basket — with items', () => {
   test.beforeEach(async ({ page }) => {
     await setRoles(page, [])
-    await page.addInitScript(
-      ({ key, id }: { key: string; id: string }) => {
-        localStorage.setItem(key, JSON.stringify({ state: { basketOrderId: id }, version: 0 }))
-      },
-      { key: BASKET_LS_KEY, id: BASKET_ORDER_WITH_ITEMS.id },
-    )
+    await setBasketInStorage(page, BASKET_ORDER_WITH_ITEMS.id)
     await setupApiMocks(page, { basketOrder: BASKET_ORDER_WITH_ITEMS })
   })
 
@@ -97,12 +93,7 @@ test.describe('Basket — with items', () => {
 test.describe('Basket — empty order (no items)', () => {
   test('Place Order button is disabled when basket has no items', async ({ page }) => {
     await setRoles(page, [])
-    await page.addInitScript(
-      ({ key, id }: { key: string; id: string }) => {
-        localStorage.setItem(key, JSON.stringify({ state: { basketOrderId: id }, version: 0 }))
-      },
-      { key: BASKET_LS_KEY, id: BASKET_ORDER.id },
-    )
+    await setBasketInStorage(page, BASKET_ORDER.id)
     await setupApiMocks(page, { basketOrder: BASKET_ORDER })
 
     await page.goto('/basket')

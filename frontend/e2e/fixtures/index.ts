@@ -8,14 +8,6 @@ import {
 
 export { expect }
 
-type Roles = 'owner' | 'customer'
-
-interface MockOptions {
-  roles?: Roles[]
-  products?: Product[]
-  allOrders?: Order[]
-}
-
 const API = 'http://localhost:8080'
 
 /**
@@ -151,10 +143,7 @@ export async function setRoles(page: Page, roles: string[]) {
 export const test = base.extend<{
   ownerPage: Page
   customerPage: Page
-  mockOptions: MockOptions
 }>({
-  mockOptions: [{ roles: ['owner'] }, { option: true }],
-
   ownerPage: async ({ page }, use) => {
     await setRoles(page, ['owner'])
     await use(page)
