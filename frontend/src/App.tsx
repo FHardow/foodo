@@ -10,7 +10,14 @@ import AdminProducts from './pages/admin/Products'
 import AdminOrders from './pages/admin/Orders'
 import Product from './pages/Product'
 
-const queryClient = new QueryClient()
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // Disable retries in E2E tests so error states appear immediately
+      retry: import.meta.env.VITE_E2E_TEST === 'true' ? false : 3,
+    },
+  },
+})
 
 export default function App() {
   return (
