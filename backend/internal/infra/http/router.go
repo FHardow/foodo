@@ -63,6 +63,9 @@ func NewRouter(
 		o.POST("/:id/accept", ownerOnly, orders.Accept)
 		o.POST("/:id/start", ownerOnly, orders.StartProgress)
 		o.POST("/:id/finish", ownerOnly, orders.Finish)
+		o.POST("/:id/unaccept", ownerOnly, orders.Unaccept)
+		o.POST("/:id/stop", ownerOnly, orders.StopProgress)
+		o.POST("/:id/unfinish", ownerOnly, orders.Unfinish)
 	}
 
 	return r

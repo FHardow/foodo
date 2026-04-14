@@ -139,3 +139,45 @@ func (s *Service) Finish(ctx context.Context, id ID) (*Order, error) {
 	}
 	return o, nil
 }
+
+func (s *Service) Unaccept(ctx context.Context, id ID) (*Order, error) {
+	o, err := s.repo.FindByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if err := o.Unaccept(); err != nil {
+		return nil, err
+	}
+	if err := s.repo.Save(ctx, o); err != nil {
+		return nil, err
+	}
+	return o, nil
+}
+
+func (s *Service) StopProgress(ctx context.Context, id ID) (*Order, error) {
+	o, err := s.repo.FindByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if err := o.StopProgress(); err != nil {
+		return nil, err
+	}
+	if err := s.repo.Save(ctx, o); err != nil {
+		return nil, err
+	}
+	return o, nil
+}
+
+func (s *Service) Unfinish(ctx context.Context, id ID) (*Order, error) {
+	o, err := s.repo.FindByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if err := o.Unfinish(); err != nil {
+		return nil, err
+	}
+	if err := s.repo.Save(ctx, o); err != nil {
+		return nil, err
+	}
+	return o, nil
+}

@@ -58,6 +58,24 @@ export async function setupApiMocks(
     }
   })
 
+  await page.route(`${API}/api/v1/orders/*/unfinish`, (route) => {
+    const orderId = route.request().url().split('/orders/')[1]?.split('/')[0]
+    const order = allOrders.find((o) => o.id === orderId)
+    route.fulfill({ json: { ...(order ?? {}), status: 'ongoing' } })
+  })
+
+  await page.route(`${API}/api/v1/orders/*/stop`, (route) => {
+    const orderId = route.request().url().split('/orders/')[1]?.split('/')[0]
+    const order = allOrders.find((o) => o.id === orderId)
+    route.fulfill({ json: { ...(order ?? {}), status: 'accepted' } })
+  })
+
+  await page.route(`${API}/api/v1/orders/*/unaccept`, (route) => {
+    const orderId = route.request().url().split('/orders/')[1]?.split('/')[0]
+    const order = allOrders.find((o) => o.id === orderId)
+    route.fulfill({ json: { ...(order ?? {}), status: 'created' } })
+  })
+
   await page.route(`${API}/api/v1/orders/*/finish`, (route) => {
     const orderId = route.request().url().split('/orders/')[1]?.split('/')[0]
     const order = allOrders.find((o) => o.id === orderId)

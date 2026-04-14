@@ -220,3 +220,45 @@ func (h *OrderHandler) Finish(c *gin.Context) {
 	}
 	respond.JSON(c, http.StatusOK, toOrderResponse(o))
 }
+
+func (h *OrderHandler) Unaccept(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		respond.Error(c, domerrors.BadRequest("invalid order ID"))
+		return
+	}
+	o, err := h.svc.Unaccept(c.Request.Context(), id)
+	if err != nil {
+		respond.Error(c, err)
+		return
+	}
+	respond.JSON(c, http.StatusOK, toOrderResponse(o))
+}
+
+func (h *OrderHandler) StopProgress(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		respond.Error(c, domerrors.BadRequest("invalid order ID"))
+		return
+	}
+	o, err := h.svc.StopProgress(c.Request.Context(), id)
+	if err != nil {
+		respond.Error(c, err)
+		return
+	}
+	respond.JSON(c, http.StatusOK, toOrderResponse(o))
+}
+
+func (h *OrderHandler) Unfinish(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		respond.Error(c, domerrors.BadRequest("invalid order ID"))
+		return
+	}
+	o, err := h.svc.Unfinish(c.Request.Context(), id)
+	if err != nil {
+		respond.Error(c, err)
+		return
+	}
+	respond.JSON(c, http.StatusOK, toOrderResponse(o))
+}

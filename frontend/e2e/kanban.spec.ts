@@ -73,7 +73,7 @@ test.describe('Kanban board — layout', () => {
     await page.goto('/admin/orders')
 
     await expect(
-      page.getByText('Drag orders to the next column to advance their status.'),
+      page.getByText('Drag orders left or right to change their status.'),
     ).toBeVisible()
   })
 })
@@ -193,15 +193,86 @@ test.describe('Kanban board — drag and drop', () => {
     expect(startCalled).toBe(false)
   })
 
-  test('cannot drag a card backward', async ({ page }) => {
+  test('can drag an "Accepted" card back to "New Orders"', async ({ page }) => {
     await setupApiMocks(page)
 
-    // Track any mutation calls
+    let unacceptCalled = false
+    await page.route('http://localhost:8080/api/v1/orders/order-accepted-1/unaccept', (route) => {
+      unacceptCalled = true
+      const updated: Order = {
+        ...ALL_ORDERS.find((o) => o.id === 'order-accepted-1')!,
+        status: 'created',
+      }
+      route.fulfill({ json: updated })
+    })
+
+    await page.goto('/admin/orders')
+
+    const carolCard = page.getByTestId('order-card').filter({ hasText: 'Carol' })
+    const newOrdersCol = page.getByTestId('kanban-column').filter({ hasText: 'New Orders' })
+
+    await carolCard.waitFor({ state: 'visible' })
+    await dragCardToColumn(page, carolCard, newOrdersCol)
+
+    expect(unacceptCalled).toBe(true)
+  })
+
+  test('can drag an "Ongoing" card back to "Accepted"', async ({ page }) => {
+    await setupApiMocks(page)
+
+    let stopCalled = false
+    await page.route('http://localhost:8080/api/v1/orders/order-ongoing-1/stop', (route) => {
+      stopCalled = true
+      const updated: Order = {
+        ...ALL_ORDERS.find((o) => o.id === 'order-ongoing-1')!,
+        status: 'accepted',
+      }
+      route.fulfill({ json: updated })
+    })
+
+    await page.goto('/admin/orders')
+
+    const daveCard = page.getByTestId('order-card').filter({ hasText: 'Dave' })
+    const acceptedCol = page.getByTestId('kanban-column').filter({ hasText: 'Accepted' })
+
+    await daveCard.waitFor({ state: 'visible' })
+    await dragCardToColumn(page, daveCard, acceptedCol)
+
+    expect(stopCalled).toBe(true)
+  })
+
+  test('can drag a "Finished" card back to "Ongoing"', async ({ page }) => {
+    await setupApiMocks(page)
+
+    let unfinishCalled = false
+    await page.route('http://localhost:8080/api/v1/orders/order-finished-1/unfinish', (route) => {
+      unfinishCalled = true
+      const updated: Order = {
+        ...ALL_ORDERS.find((o) => o.id === 'order-finished-1')!,
+        status: 'ongoing',
+      }
+      route.fulfill({ json: updated })
+    })
+
+    await page.goto('/admin/orders')
+
+    const eveCard = page.getByTestId('order-card').filter({ hasText: 'Eve' })
+    const ongoingCol = page.getByTestId('kanban-column').filter({ hasText: 'Ongoing' })
+
+    await eveCard.waitFor({ state: 'visible' })
+    await dragCardToColumn(page, eveCard, ongoingCol)
+
+    expect(unfinishCalled).toBe(true)
+  })
+
+  test('cannot drag a card more than one column backward (skipping)', async ({ page }) => {
+    await setupApiMocks(page)
+
     let mutationCalled = false
-    await page.route('http://localhost:8080/api/v1/orders/order-accepted-1/**', (route) => {
+    await page.route('http://localhost:8080/api/v1/orders/order-ongoing-1/**', (route) => {
       if (route.request().method() !== 'GET') {
         mutationCalled = true
-        route.fulfill({ json: ALL_ORDERS.find((o) => o.id === 'order-accepted-1') })
+        route.fulfill({ json: ALL_ORDERS.find((o) => o.id === 'order-ongoing-1') })
       } else {
         route.continue()
       }
@@ -209,12 +280,12 @@ test.describe('Kanban board — drag and drop', () => {
 
     await page.goto('/admin/orders')
 
-    const carolCard = page.getByTestId('order-card').filter({ hasText: 'Carol' })
-    // Try to drag Carol (Accepted) back to New Orders
+    const daveCard = page.getByTestId('order-card').filter({ hasText: 'Dave' })
+    // Try to drag Dave (Ongoing) back two steps to New Orders — should be ignored
     const newOrdersCol = page.getByTestId('kanban-column').filter({ hasText: 'New Orders' })
 
-    await carolCard.waitFor({ state: 'visible' })
-    await dragCardToColumn(page, carolCard, newOrdersCol)
+    await daveCard.waitFor({ state: 'visible' })
+    await dragCardToColumn(page, daveCard, newOrdersCol)
 
     expect(mutationCalled).toBe(false)
   })

@@ -39,3 +39,12 @@ export const startOrder = (orderId: string) =>
 
 export const finishOrder = (orderId: string) =>
   apiFetch<Order>(`/api/v1/orders/${orderId}/finish`, { method: 'POST' })
+
+export const unacceptOrder = (orderId: string) =>
+  apiFetch<Order>(`/api/v1/orders/${orderId}/unaccept`, { method: 'POST' })
+
+export const stopOrder = (orderId: string) =>
+  apiFetch<Order>(`/api/v1/orders/${orderId}/stop`, { method: 'POST' })
+
+export const unfinishOrder = (orderId: string) =>
+  apiFetch<Order>(`/api/v1/orders/${orderId}/unfinish`, { method: 'POST' })

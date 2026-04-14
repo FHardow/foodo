@@ -166,3 +166,33 @@ func (o *Order) Finish() error {
 	o.updatedAt = time.Now().UTC()
 	return nil
 }
+
+// Unaccept transitions an accepted order back to created.
+func (o *Order) Unaccept() error {
+	if o.status != StatusAccepted {
+		return domerrors.BadRequest("only accepted orders can be unaccepted")
+	}
+	o.status = StatusCreated
+	o.updatedAt = time.Now().UTC()
+	return nil
+}
+
+// StopProgress transitions an ongoing order back to accepted.
+func (o *Order) StopProgress() error {
+	if o.status != StatusOngoing {
+		return domerrors.BadRequest("only ongoing orders can be stopped")
+	}
+	o.status = StatusAccepted
+	o.updatedAt = time.Now().UTC()
+	return nil
+}
+
+// Unfinish transitions a finished order back to ongoing.
+func (o *Order) Unfinish() error {
+	if o.status != StatusFinished {
+		return domerrors.BadRequest("only finished orders can be unfinished")
+	}
+	o.status = StatusOngoing
+	o.updatedAt = time.Now().UTC()
+	return nil
+}

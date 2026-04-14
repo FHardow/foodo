@@ -15,7 +15,7 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import { useState, useEffect } from 'react'
 import keycloak from '../../auth/keycloak'
-import { getAllOrders, acceptOrder, startOrder, finishOrder } from '../../api/orders'
+import { getAllOrders, acceptOrder, startOrder, finishOrder, unacceptOrder, stopOrder, unfinishOrder } from '../../api/orders'
 import type { Order } from '../../types'
 
 type KanbanStatus = 'created' | 'accepted' | 'ongoing' | 'finished'
@@ -137,9 +137,12 @@ export default function AdminOrders() {
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ['all-orders'] })
 
-  const accept = useMutation({ mutationFn: acceptOrder, onSuccess: invalidate, onError: () => toast.error('Failed to accept order') })
-  const start  = useMutation({ mutationFn: startOrder,  onSuccess: invalidate, onError: () => toast.error('Failed to start order') })
-  const finish = useMutation({ mutationFn: finishOrder, onSuccess: invalidate, onError: () => toast.error('Failed to finish order') })
+  const accept   = useMutation({ mutationFn: acceptOrder,   onSuccess: invalidate, onError: () => toast.error('Failed to accept order') })
+  const start    = useMutation({ mutationFn: startOrder,    onSuccess: invalidate, onError: () => toast.error('Failed to start order') })
+  const finish   = useMutation({ mutationFn: finishOrder,   onSuccess: invalidate, onError: () => toast.error('Failed to finish order') })
+  const unaccept = useMutation({ mutationFn: unacceptOrder, onSuccess: invalidate, onError: () => toast.error('Failed to move order back') })
+  const stop     = useMutation({ mutationFn: stopOrder,     onSuccess: invalidate, onError: () => toast.error('Failed to move order back') })
+  const unfinish = useMutation({ mutationFn: unfinishOrder, onSuccess: invalidate, onError: () => toast.error('Failed to move order back') })
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -175,12 +178,19 @@ export default function AdminOrders() {
     const fromIdx = STATUS_ORDER.indexOf(fromOrder.status as KanbanStatus)
     const toIdx   = STATUS_ORDER.indexOf(over.id as KanbanStatus)
 
-    if (toIdx !== fromIdx + 1) return // only forward, one step at a time
+    const diff = toIdx - fromIdx
+    if (diff !== 1 && diff !== -1) return // one step at a time, either direction
 
     const orderId = active.id as string
-    if (toIdx === 1) accept.mutate(orderId)
-    else if (toIdx === 2) start.mutate(orderId)
-    else if (toIdx === 3) finish.mutate(orderId)
+    if (diff === 1) {
+      if (toIdx === 1) accept.mutate(orderId)
+      else if (toIdx === 2) start.mutate(orderId)
+      else if (toIdx === 3) finish.mutate(orderId)
+    } else {
+      if (fromIdx === 1) unaccept.mutate(orderId)
+      else if (fromIdx === 2) stop.mutate(orderId)
+      else if (fromIdx === 3) unfinish.mutate(orderId)
+    }
   }
 
   if (isLoading) {
@@ -199,7 +209,7 @@ export default function AdminOrders() {
     <div>
       <h1 className="text-2xl font-bold text-[#3d2b1a] mb-6">Order Board</h1>
       <p className="text-sm text-[#8a6a50] mb-6">
-        Drag orders to the next column to advance their status.
+        Drag orders left or right to change their status.
       </p>
 
       <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
