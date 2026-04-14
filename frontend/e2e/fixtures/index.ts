@@ -176,14 +176,40 @@ export const test = base.extend<{
 /**
  * Drag a kanban card to another column using pointer events.
  * @dnd-kit uses PointerSensor with 5px activation distance.
+ *
+ * On mobile (single-column layout) the target column can be below the fold.
+ * We compute absolute page positions for both elements and scroll so that
+ * both fit inside the viewport before starting the drag.
  */
 export async function dragCardToColumn(
   page: Page,
   cardLocator: ReturnType<Page['locator']>,
   columnLocator: ReturnType<Page['locator']>,
 ) {
+  // Helper: absolute page coords (viewport-relative + scroll offset)
+  const absBox = (locator: ReturnType<Page['locator']>) =>
+    locator.evaluate((el) => {
+      const r = el.getBoundingClientRect()
+      return { x: r.x + window.scrollX, y: r.y + window.scrollY, width: r.width, height: r.height }
+    })
+
+  const cardAbs = await absBox(cardLocator)
+  const colAbs  = await absBox(columnLocator)
+
+  // Scroll so both elements are visible simultaneously
+  const viewport    = page.viewportSize()!
+  const topEdge     = Math.min(cardAbs.y, colAbs.y)
+  const bottomEdge  = Math.max(cardAbs.y + cardAbs.height, colAbs.y + colAbs.height)
+  const rangeHeight = bottomEdge - topEdge
+  const scrollY = rangeHeight <= viewport.height
+    ? Math.max(0, topEdge - (viewport.height - rangeHeight) / 2)
+    : Math.max(0, topEdge)
+  await page.evaluate((y) => window.scrollTo(0, y), scrollY)
+  await page.waitForTimeout(50)
+
+  // Now get viewport-relative bounding boxes (both elements are in view)
   const cardBox = await cardLocator.boundingBox()
-  const colBox = await columnLocator.boundingBox()
+  const colBox  = await columnLocator.boundingBox()
 
   if (!cardBox || !colBox) {
     throw new Error('dragCardToColumn: could not get bounding boxes')
@@ -191,9 +217,9 @@ export async function dragCardToColumn(
 
   const startX = cardBox.x + cardBox.width / 2
   const startY = cardBox.y + cardBox.height / 2
-  const endX = colBox.x + colBox.width / 2
+  const endX   = colBox.x + colBox.width / 2
   // Target the drop zone area (below the column header)
-  const endY = colBox.y + 80
+  const endY   = colBox.y + 80
 
   // Move to start position
   await page.mouse.move(startX, startY)

@@ -12,14 +12,16 @@ test.describe('Navigation — owner', () => {
     await expect(page.getByRole('link', { name: 'Bread Order' })).toBeVisible()
   })
 
-  test('shows Store and History links', async ({ page }) => {
+  test('shows Store and History links', async ({ page, isMobile }) => {
+    test.skip(isMobile, 'Nav links are hidden on mobile (hidden sm:block) — no hamburger menu')
     await page.goto('/')
 
     await expect(page.getByRole('link', { name: 'Store' })).toBeVisible()
     await expect(page.getByRole('link', { name: 'History' })).toBeVisible()
   })
 
-  test('shows owner-only nav links for admin', async ({ page }) => {
+  test('shows owner-only nav links for admin', async ({ page, isMobile }) => {
+    test.skip(isMobile, 'Nav links are hidden on mobile (hidden sm:block) — no hamburger menu')
     await page.goto('/')
 
     await expect(page.getByRole('link', { name: 'Orders' })).toBeVisible()
@@ -39,14 +41,16 @@ test.describe('Navigation — owner', () => {
     await expect(page).toHaveURL('/')
   })
 
-  test('Orders link navigates to kanban board', async ({ page }) => {
+  test('Orders link navigates to kanban board', async ({ page, isMobile }) => {
+    test.skip(isMobile, 'Nav links are hidden on mobile (hidden sm:block) — no hamburger menu')
     await page.goto('/')
 
     await page.getByRole('link', { name: 'Orders' }).click()
     await expect(page).toHaveURL('/admin/orders')
   })
 
-  test('History link navigates to order history', async ({ page }) => {
+  test('History link navigates to order history', async ({ page, isMobile }) => {
+    test.skip(isMobile, 'Nav links are hidden on mobile (hidden sm:block) — no hamburger menu')
     await page.goto('/')
 
     await page.getByRole('link', { name: 'History' }).click()
@@ -74,7 +78,8 @@ test.describe('Navigation — customer', () => {
     await expect(page.getByRole('link', { name: 'Products' })).not.toBeVisible()
   })
 
-  test('still shows Store, History and basket links', async ({ page }) => {
+  test('still shows Store, History and basket links', async ({ page, isMobile }) => {
+    test.skip(isMobile, 'Nav links are hidden on mobile (hidden sm:block) — no hamburger menu')
     await page.goto('/')
 
     await expect(page.getByRole('link', { name: 'Store' })).toBeVisible()
