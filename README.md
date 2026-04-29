@@ -2,6 +2,10 @@
 
 A food ordering app with a React frontend, Go backend, Keycloak authentication, and PostgreSQL.
 
+- [Backend](backend/README.md) — Go API, migrations, local dev, env vars
+- [Frontend](frontend/README.md) — React SPA, testing, local dev, env vars
+- [Keycloak Theme](keycloak-theme/README.md) — Keycloakify login theme, build, deployment
+
 ## Architecture
 
 ```
@@ -18,8 +22,7 @@ Keycloak runs separately and is referenced via KEYCLOAK_URL.
 
 - Docker and Docker Compose
 - A Linux server with ports 80 and 443 open
-- DNS A records pointing to your server:
-  - `foodo.example.de`
+- DNS A record pointing to your server (`foodo.example.de`)
 - A running Keycloak instance (e.g. `auth.example.de`) with the `foodo` realm configured
 
 ## Deployment
@@ -33,13 +36,13 @@ cd foodo
 
 ### 2. Start Traefik
 
-Traefik runs in its own compose file and creates the shared `traefik-public` Docker network that other services attach to.
+Traefik runs in its own compose file and creates the shared `traefik-public` Docker network.
 
 ```bash
 docker compose -f docker-compose.traefik.yml up -d
 ```
 
-This only needs to be done once per host. If you already have Traefik running elsewhere, make sure the `traefik-public` network exists:
+Only needed once per host. If Traefik is already running elsewhere:
 
 ```bash
 docker network create traefik-public
@@ -51,12 +54,10 @@ docker network create traefik-public
 cp .env.example .env
 ```
 
-Edit `.env` with your values:
-
 | Variable | Description |
 |----------|-------------|
 | `DOMAIN` | Your domain, e.g. `example.de` |
-| `ACME_EMAIL` | Email for Let's Encrypt certificate notifications |
+| `ACME_EMAIL` | Email for Let's Encrypt notifications |
 | `DB_PASSWORD` | PostgreSQL password |
 | `KEYCLOAK_URL` | URL of your Keycloak instance |
 | `VITE_KEYCLOAK_URL` | Same URL, baked into the frontend at build time |
@@ -67,12 +68,12 @@ Edit `.env` with your values:
 docker compose up -d --build
 ```
 
-On first start the Go backend runs database migrations automatically.
+On first start the backend runs database migrations automatically.
 
 ### 5. Verify
 
 ```bash
-docker compose ps        # all services should be healthy/running
+docker compose ps        # all services healthy/running
 docker compose logs -f   # follow logs
 ```
 
@@ -81,17 +82,4 @@ docker compose logs -f   # follow logs
 ```bash
 git pull
 docker compose up -d --build
-```
-
-## Useful commands
-
-```bash
-# View logs for a specific service
-docker compose logs -f backend
-
-# Open a psql shell
-docker compose exec postgres psql -U foodo -d foodo
-
-# Rebuild a single service without downtime
-docker compose up -d --build backend
 ```
