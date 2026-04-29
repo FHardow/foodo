@@ -14,9 +14,10 @@ import (
 	"github.com/fhardow/foodo/internal/domain/order"
 	"github.com/fhardow/foodo/internal/domain/product"
 	"github.com/fhardow/foodo/internal/domain/user"
-	"github.com/fhardow/foodo/internal/infra/postgres"
 	apphttp "github.com/fhardow/foodo/internal/infra/http"
 	"github.com/fhardow/foodo/internal/infra/http/handler"
+	"github.com/fhardow/foodo/internal/infra/postgres"
+	"github.com/fhardow/foodo/internal/infra/telegram"
 	"github.com/fhardow/foodo/pkg/logger"
 )
 
@@ -51,6 +52,10 @@ func main() {
 	userSvc    := user.NewService(userRepo)
 	productSvc := product.NewService(productRepo)
 	orderSvc   := order.NewService(orderRepo, productRepo, userRepo)
+	if cfg.TelegramBotToken != "" && cfg.TelegramChatID != "" {
+		orderSvc.WithNotifier(telegram.NewNotifier(cfg.TelegramBotToken, cfg.TelegramChatID))
+		log.Info("telegram order notifications enabled")
+	}
 
 	// HTTP handlers
 	userHandler    := handler.NewUserHandler(userSvc)

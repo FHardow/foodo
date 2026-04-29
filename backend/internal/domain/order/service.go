@@ -14,10 +14,16 @@ type Service struct {
 	repo        Repository
 	productRepo product.Repository
 	userRepo    user.Repository
+	notifier    Notifier
 }
 
 func NewService(repo Repository, productRepo product.Repository, userRepo user.Repository) *Service {
-	return &Service{repo: repo, productRepo: productRepo, userRepo: userRepo}
+	return &Service{repo: repo, productRepo: productRepo, userRepo: userRepo, notifier: noopNotifier{}}
+}
+
+func (s *Service) WithNotifier(n Notifier) *Service {
+	s.notifier = n
+	return s
 }
 
 func (s *Service) Create(ctx context.Context, userID uuid.UUID) (*Order, error) {
@@ -95,6 +101,7 @@ func (s *Service) Confirm(ctx context.Context, id ID) (*Order, error) {
 	if err := s.repo.Save(ctx, o); err != nil {
 		return nil, err
 	}
+	go s.notifier.OrderConfirmed(o)
 	return o, nil
 }
 
