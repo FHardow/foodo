@@ -1,0 +1,8 @@
+.env
+.gitnexus
+.superpowers/
+worktrees/
+frontend/.env
+backend/.env
+**/node_modules
+backend/uploads/
