@@ -17,6 +17,8 @@ docker compose up -d --build
 
 Migrations run automatically on first start.
 
+> **Keycloak** must be running separately before starting the app. Create a `foodo` realm, set `KEYCLOAK_URL` in `.env`, and deploy the login theme from [`keycloak-theme/`](keycloak-theme/README.md).
+
 ## Updating
 
 ```bash
