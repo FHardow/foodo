@@ -1,4 +1,4 @@
-# Frontend Design Spec — Bread Order
+# Frontend Design Spec — Foodo
 
 **Date:** 2026-03-23
 **Status:** Draft

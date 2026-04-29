@@ -1,6 +1,6 @@
 # keycloak-theme
 
-Custom Keycloakify login theme for bread-order. Styled to match the app's warm bakery aesthetic (Tailwind v4, React).
+Custom Keycloakify login theme for foodo. Styled to match the app's warm bakery aesthetic (Tailwind v4, React).
 
 ## Pages
 

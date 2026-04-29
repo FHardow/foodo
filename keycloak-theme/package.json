@@ -1,7 +1,7 @@
 {
     "name": "keycloak-theme",
     "version": "0.0.0",
-    "description": "Keycloakify login theme for bread-order",
+    "description": "Keycloakify login theme for foodo",
     "type": "module",
     "scripts": {
         "dev": "vite",

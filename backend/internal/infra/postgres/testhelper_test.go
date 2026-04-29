@@ -31,9 +31,9 @@ func newTestDB(t *testing.T) *gorm.DB {
 
 	pgContainer, err := tcpostgres.Run(ctx,
 		"postgres:16-alpine",
-		tcpostgres.WithDatabase("breadtest"),
-		tcpostgres.WithUsername("breaduser"),
-		tcpostgres.WithPassword("breadpass"),
+		tcpostgres.WithDatabase("foodotest"),
+		tcpostgres.WithUsername("foodouser"),
+		tcpostgres.WithPassword("foodopass"),
 		testcontainers.WithWaitStrategy(
 			wait.ForLog("database system is ready to accept connections").
 				WithOccurrence(2).

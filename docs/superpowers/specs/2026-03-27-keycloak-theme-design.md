@@ -5,7 +5,7 @@
 
 ## Overview
 
-A custom Keycloak login theme built with Keycloakify (React + Tailwind), styled to match the bread-order frontend. Lives in a `keycloak-theme/` subfolder within the existing repo.
+A custom Keycloak login theme built with Keycloakify (React + Tailwind), styled to match the foodo frontend. Lives in a `keycloak-theme/` subfolder within the existing repo.
 
 ## Approach
 
@@ -16,7 +16,7 @@ Chosen over a plain FreeMarker theme because it allows using the same stack (Rea
 ## Repository Structure
 
 ```
-bread-order/
+foodo/
   frontend/               ← existing app (untouched)
   keycloak-theme/         ← new Vite + Keycloakify project
     src/
@@ -45,7 +45,7 @@ Matches the existing app's warm bakery aesthetic.
 
 **Card:** white, `rounded-lg`, `border border-[#e8ddd0]`, subtle shadow, centered on page.
 
-**Brand header** (top of card): `🍞 Bread Order` in bold `#5c3d1e` with "Your local bakery" tagline in muted text.
+**Brand header** (top of card): `🍞 Foodo` in bold `#5c3d1e` with "Your local bakery" tagline in muted text.
 
 **Labels:** small, `#5c3d1e`, semibold.
 
@@ -87,4 +87,4 @@ Keycloakify passes field-level and global error messages as props. Each input re
 1. `cd keycloak-theme && npm run build` → produces `keycloak-theme-*.jar`
 2. Copy `.jar` to Keycloak's `providers/` directory
 3. Restart Keycloak
-4. Keycloak admin console → Realm → Themes → set **Login theme** to `bread-order`
+4. Keycloak admin console → Realm → Themes → set **Login theme** to `foodo`

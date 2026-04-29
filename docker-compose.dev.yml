@@ -3,15 +3,15 @@ services:
   postgres:
     image: postgres:18-alpine
     environment:
-      POSTGRES_USER: ${DB_USER:-bread}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-bread}
-      POSTGRES_DB: ${DB_NAME:-bread_order}
+      POSTGRES_USER: ${DB_USER:-foodo}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-foodo}
+      POSTGRES_DB: ${DB_NAME:-foodo}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-bread} -d ${DB_NAME:-bread_order}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-foodo} -d ${DB_NAME:-foodo}"]
       interval: 5s
       timeout: 5s
       retries: 5

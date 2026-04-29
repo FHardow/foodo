@@ -9,7 +9,7 @@ COPY . .
 # VITE_* vars are baked in at build time — pass them as build args
 ARG VITE_API_URL=""
 ARG VITE_KEYCLOAK_URL
-ARG VITE_KEYCLOAK_REALM=bread-order
+ARG VITE_KEYCLOAK_REALM=foodo
 ARG VITE_KEYCLOAK_CLIENT_ID=bread-frontend
 
 ENV VITE_API_URL=$VITE_API_URL \

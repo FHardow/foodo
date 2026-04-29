@@ -1,13 +1,13 @@
-# Bread Order
+# Foodo
 
-A bread ordering app with a React frontend, Go backend, Keycloak authentication, and PostgreSQL.
+A food ordering app with a React frontend, Go backend, Keycloak authentication, and PostgreSQL.
 
 ## Architecture
 
 ```
 Internet → Traefik (TLS termination)
-              ├── bread.fhardow.de        → Frontend (nginx + React SPA)
-              └── bread.fhardow.de/api/*  → Backend (Go API)
+              ├── foodo.example.de        → Frontend (nginx + React SPA)
+              └── foodo.example.de/api/*  → Backend (Go API)
                        ↓
                   PostgreSQL (internal)
 
@@ -19,8 +19,8 @@ Keycloak runs separately and is referenced via KEYCLOAK_URL.
 - Docker and Docker Compose
 - A Linux server with ports 80 and 443 open
 - DNS A records pointing to your server:
-  - `bread.fhardow.de`
-- A running Keycloak instance (e.g. `auth.fhardow.de`) with the `bread-order` realm configured
+  - `foodo.example.de`
+- A running Keycloak instance (e.g. `auth.example.de`) with the `foodo` realm configured
 
 ## Deployment
 
@@ -28,7 +28,7 @@ Keycloak runs separately and is referenced via KEYCLOAK_URL.
 
 ```bash
 git clone <repo-url>
-cd bread-order
+cd foodo
 ```
 
 ### 2. Start Traefik
@@ -55,7 +55,7 @@ Edit `.env` with your values:
 
 | Variable | Description |
 |----------|-------------|
-| `DOMAIN` | Your domain, e.g. `fhardow.de` |
+| `DOMAIN` | Your domain, e.g. `example.de` |
 | `ACME_EMAIL` | Email for Let's Encrypt certificate notifications |
 | `DB_PASSWORD` | PostgreSQL password |
 | `KEYCLOAK_URL` | URL of your Keycloak instance |
@@ -90,7 +90,7 @@ docker compose up -d --build
 docker compose logs -f backend
 
 # Open a psql shell
-docker compose exec postgres psql -U bread -d bread_order
+docker compose exec postgres psql -U foodo -d foodo
 
 # Rebuild a single service without downtime
 docker compose up -d --build backend

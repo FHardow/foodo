@@ -8,11 +8,11 @@ services:
         # Traefik routes /api/* to the backend, everything else to this container.
         VITE_API_URL: ""
         VITE_KEYCLOAK_URL: ${VITE_KEYCLOAK_URL}
-        VITE_KEYCLOAK_REALM: ${KEYCLOAK_REALM:-bread-order}
-        VITE_KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID:-bread-frontend}
+        VITE_KEYCLOAK_REALM: ${KEYCLOAK_REALM:-foodo}
+        VITE_KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID:-foodo-frontend}
     labels:
       - traefik.enable=true
-      - traefik.http.routers.frontend.rule=Host(`bread.${DOMAIN}`)
+      - traefik.http.routers.frontend.rule=Host(`foodo.${DOMAIN}`)
       - traefik.http.routers.frontend.entrypoints=websecure
       - traefik.http.routers.frontend.tls.certresolver=letsencrypt
       - traefik.http.routers.frontend.priority=1
@@ -29,18 +29,18 @@ services:
       ENV: production
       PORT: 8080
       DB_HOST: postgres
-      DB_USER: ${DB_USER:-bread}
+      DB_USER: ${DB_USER:-foodo}
       DB_PASSWORD: ${DB_PASSWORD}
-      DB_NAME: ${DB_NAME:-bread_order}
+      DB_NAME: ${DB_NAME:-foodo}
       KEYCLOAK_URL: ${KEYCLOAK_URL}
-      KEYCLOAK_REALM: ${KEYCLOAK_REALM:-bread-order}
+      KEYCLOAK_REALM: ${KEYCLOAK_REALM:-foodo}
     labels:
       - traefik.enable=true
-      - traefik.http.routers.backend.rule=Host(`bread.${DOMAIN}`) && PathPrefix(`/api`)
+      - traefik.http.routers.backend.rule=Host(`foodo.${DOMAIN}`) && PathPrefix(`/api`)
       - traefik.http.routers.backend.entrypoints=websecure
       - traefik.http.routers.backend.tls.certresolver=letsencrypt
       - traefik.http.routers.backend.priority=10
-      - traefik.http.routers.uploads.rule=Host(`bread.${DOMAIN}`) && PathPrefix(`/uploads`)
+      - traefik.http.routers.uploads.rule=Host(`foodo.${DOMAIN}`) && PathPrefix(`/uploads`)
       - traefik.http.routers.uploads.entrypoints=websecure
       - traefik.http.routers.uploads.tls.certresolver=letsencrypt
       - traefik.http.routers.uploads.priority=10
@@ -60,13 +60,13 @@ services:
   postgres:
     image: postgres:18-alpine
     environment:
-      POSTGRES_USER: ${DB_USER:-bread}
+      POSTGRES_USER: ${DB_USER:-foodo}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_DB: ${DB_NAME:-bread_order}
+      POSTGRES_DB: ${DB_NAME:-foodo}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-bread} -d ${DB_NAME:-bread_order}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-foodo} -d ${DB_NAME:-foodo}"]
       interval: 5s
       timeout: 5s
       retries: 5

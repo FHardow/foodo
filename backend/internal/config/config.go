@@ -19,7 +19,7 @@ func Load() (*Config, error) {
 		Env:           getEnv("ENV", "development"),
 		Port:          getEnv("PORT", "8080"),
 		KeycloakURL:   getEnv("KEYCLOAK_URL", "http://localhost:8180"),
-		KeycloakRealm: getEnv("KEYCLOAK_REALM", "bread-order"),
+		KeycloakRealm: getEnv("KEYCLOAK_REALM", "foodo"),
 		CORSOrigin:    os.Getenv("CORS_ORIGIN"),
 	}
 
@@ -46,7 +46,7 @@ func buildDSN() string {
 		host,
 		getEnv("DB_USER", "postgres"),
 		getEnv("DB_PASSWORD", ""),
-		getEnv("DB_NAME", "bread_order"),
+		getEnv("DB_NAME", "foodo"),
 		getEnv("DB_PORT", "5432"),
 		getEnv("DB_SSLMODE", "disable"),
 	)

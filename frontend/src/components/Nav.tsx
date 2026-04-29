@@ -18,7 +18,7 @@ export default function Nav() {
   return (
     <nav className="bg-white border-b border-[#e8ddd0] px-4 py-3 flex justify-between items-center sticky top-0 z-10">
       <Link to="/" className="font-bold text-[#5c3d1e] text-lg">
-        Bread Order
+        Foodo
       </Link>
       <div className="flex items-center gap-4">
         <Link to="/" className="hidden sm:block text-sm text-[#5c3d1e] hover:text-[#3d2b1a]">

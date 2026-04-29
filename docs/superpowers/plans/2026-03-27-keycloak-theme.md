@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build a Keycloakify (React + Tailwind v4) login theme for the bread-order app with Login and Register pages styled to match the existing frontend.
+**Goal:** Build a Keycloakify (React + Tailwind v4) login theme for the foodo app with Login and Register pages styled to match the existing frontend.
 
 **Architecture:** A standalone Vite project in `keycloak-theme/` scaffolded by the Keycloakify CLI, then modified with our custom pages. A shared `Template` component provides the centered white card + brand header; `Login` and `Register` pages compose it. `npm run build` emits a `.jar` for deployment to Keycloak.
 
@@ -35,7 +35,7 @@
 - [ ] **Step 1: Run the Keycloakify scaffolding CLI**
 
 ```bash
-cd /path/to/bread-order
+cd /path/to/foodo
 npx create-keycloakify@latest
 ```
 
@@ -174,7 +174,7 @@ export default function Template({ children }: Props) {
     <div className="min-h-screen bg-[#faf7f2] flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-md bg-white border border-[#e8ddd0] rounded-lg shadow-sm p-8">
         <div className="text-center mb-6">
-          <p className="text-xl font-bold text-[#5c3d1e]">🍞 Bread Order</p>
+          <p className="text-xl font-bold text-[#5c3d1e]">🍞 Foodo</p>
           <p className="text-sm text-[#8a6a50] mt-1">Your local bakery</p>
         </div>
         {children}
@@ -336,7 +336,7 @@ npm run dev
 The dev server renders the Login page with mock data. Verify:
 - Page background is `#faf7f2` cream
 - White card centered on page
-- `🍞 Bread Order` brand + tagline visible
+- `🍞 Foodo` brand + tagline visible
 - Email and password inputs styled correctly
 - "Sign in" button is dark brown
 - "Forgot password?" and "Create account" links visible at bottom

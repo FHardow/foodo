@@ -6,10 +6,10 @@ test.describe('Navigation — owner', () => {
     await setupApiMocks(page)
   })
 
-  test('shows Bread Order brand link', async ({ page }) => {
+  test('shows Foodo brand link', async ({ page }) => {
     await page.goto('/')
 
-    await expect(page.getByRole('link', { name: 'Bread Order' })).toBeVisible()
+    await expect(page.getByRole('link', { name: 'Foodo' })).toBeVisible()
   })
 
   test('shows Store and History links', async ({ page, isMobile }) => {
@@ -37,7 +37,7 @@ test.describe('Navigation — owner', () => {
   test('brand link navigates to store', async ({ page }) => {
     await page.goto('/basket')
 
-    await page.getByRole('link', { name: 'Bread Order' }).click()
+    await page.getByRole('link', { name: 'Foodo' }).click()
     await expect(page).toHaveURL('/')
   })
 

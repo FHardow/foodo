@@ -54,7 +54,7 @@ package product
 import (
 	"time"
 
-	domerrors "github.com/fhardow/bread-order/pkg/errors"
+	domerrors "github.com/fhardow/foodo/pkg/errors"
 	"github.com/google/uuid"
 )
 
@@ -436,9 +436,9 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/fhardow/bread-order/internal/domain/product"
-	"github.com/fhardow/bread-order/internal/infra/http/respond"
-	domerrors "github.com/fhardow/bread-order/pkg/errors"
+	"github.com/fhardow/foodo/internal/domain/product"
+	"github.com/fhardow/foodo/internal/infra/http/respond"
+	domerrors "github.com/fhardow/foodo/pkg/errors"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
@@ -866,8 +866,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/fhardow/bread-order/internal/infra/http/handler"
-	"github.com/fhardow/bread-order/internal/infra/http/middleware"
+	"github.com/fhardow/foodo/internal/infra/http/handler"
+	"github.com/fhardow/foodo/internal/infra/http/middleware"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
@@ -942,14 +942,14 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/fhardow/bread-order/internal/config"
-	"github.com/fhardow/bread-order/internal/domain/order"
-	"github.com/fhardow/bread-order/internal/domain/product"
-	"github.com/fhardow/bread-order/internal/domain/user"
-	"github.com/fhardow/bread-order/internal/infra/postgres"
-	apphttp "github.com/fhardow/bread-order/internal/infra/http"
-	"github.com/fhardow/bread-order/internal/infra/http/handler"
-	"github.com/fhardow/bread-order/pkg/logger"
+	"github.com/fhardow/foodo/internal/config"
+	"github.com/fhardow/foodo/internal/domain/order"
+	"github.com/fhardow/foodo/internal/domain/product"
+	"github.com/fhardow/foodo/internal/domain/user"
+	"github.com/fhardow/foodo/internal/infra/postgres"
+	apphttp "github.com/fhardow/foodo/internal/infra/http"
+	"github.com/fhardow/foodo/internal/infra/http/handler"
+	"github.com/fhardow/foodo/pkg/logger"
 )
 
 const uploadsDir = "./uploads"
@@ -1494,7 +1494,7 @@ export default function Nav() {
   return (
     <nav className="bg-white border-b border-[#e8ddd0] px-4 py-3 flex justify-between items-center sticky top-0 z-10">
       <Link to="/" className="font-bold text-[#5c3d1e] text-lg">
-        Bread Order
+        Foodo
       </Link>
       <div className="flex items-center gap-4">
         <Link to="/" className="hidden sm:block text-sm text-[#5c3d1e] hover:text-[#3d2b1a]">

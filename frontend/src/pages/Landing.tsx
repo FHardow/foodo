@@ -3,7 +3,7 @@ import keycloak from '../auth/keycloak'
 export default function Landing() {
   return (
     <div className="min-h-screen bg-[#faf7f2] flex flex-col items-center justify-center gap-8">
-      <h1 className="text-4xl font-bold text-[#3b2a1a]">Bread Order</h1>
+      <h1 className="text-4xl font-bold text-[#3b2a1a]">Foodo</h1>
       <div className="flex gap-4">
         <button
           onClick={() => keycloak.login()}
