@@ -5,6 +5,8 @@ import { getOrder } from '../api/orders'
 import { getProducts } from '../api/products'
 import { useBasket } from '../hooks/useBasket'
 import { useBasketStore } from '../store/basket'
+import { Card } from '../components/ui/card'
+import { Button } from '../components/ui/button'
 
 export default function Basket() {
   const navigate = useNavigate()
@@ -27,8 +29,8 @@ export default function Basket() {
   if (!basketOrderId || (!isLoading && !order)) {
     return (
       <div className="text-center py-16">
-        <p className="text-[#8a6a50] mb-4">Your basket is empty</p>
-        <Link to="/" className="text-[#5c3d1e] underline">
+        <p className="text-muted-foreground mb-4">Your basket is empty</p>
+        <Link to="/" className="text-primary underline">
           Browse products
         </Link>
       </div>
@@ -36,7 +38,7 @@ export default function Basket() {
   }
 
   if (isLoading) {
-    return <div className="animate-pulse bg-white rounded-lg h-48 border border-[#e8ddd0]" />
+    return <Card className="h-48 animate-pulse" />
   }
 
   // productMap used as fallback for items that may lack unit (e.g. older orders)
@@ -57,12 +59,12 @@ export default function Basket() {
 
   return (
     <div className="max-w-lg mx-auto">
-      <h1 className="text-2xl font-bold text-[#3d2b1a] mb-6">Your Basket</h1>
+      <h1 className="text-2xl font-bold text-foreground mb-6">Your Basket</h1>
 
       {order?.items.length === 0 ? (
-        <p className="text-[#8a6a50]">
+        <p className="text-muted-foreground">
           No items yet.{' '}
-          <Link to="/" className="underline text-[#5c3d1e]">
+          <Link to="/" className="underline text-primary">
             Add some
           </Link>
         </p>
@@ -71,40 +73,44 @@ export default function Basket() {
           {order?.items.map((item) => {
             const unit = item.unit || productMap.get(item.product_id)?.unit
             return (
-              <li
-                key={item.product_id}
-                className="flex items-center gap-4 bg-white rounded-lg border border-[#e8ddd0] p-4"
-              >
-                <div className="flex-1">
-                  <p className="font-medium text-[#3d2b1a]">{item.product_name}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() =>
-                      item.quantity === 1
-                        ? removeItem(item.product_id)
-                        : updateQuantity(item.product_id, item.quantity - 1)
-                    }
-                    className="w-7 h-7 rounded border border-[#e8ddd0] text-[#5c3d1e] hover:border-[#5c3d1e]"
-                  >
-                    −
-                  </button>
-                  <span className="text-center text-[#3d2b1a] min-w-[3rem]">
-                    {unit ? `${unit} ${item.quantity}` : item.quantity}
-                  </span>
-                  <button
-                    onClick={() => updateQuantity(item.product_id, item.quantity + 1)}
-                    className="w-7 h-7 rounded border border-[#e8ddd0] text-[#5c3d1e] hover:border-[#5c3d1e]"
-                  >
-                    +
-                  </button>
-                  <button
-                    onClick={() => removeItem(item.product_id)}
-                    className="ml-2 text-red-400 text-sm hover:text-red-600"
-                  >
-                    Remove
-                  </button>
-                </div>
+              <li key={item.product_id}>
+                <Card className="flex items-center gap-4 p-4">
+                  <div className="flex-1">
+                    <p className="font-medium text-foreground">{item.product_name}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={() =>
+                        item.quantity === 1
+                          ? removeItem(item.product_id)
+                          : updateQuantity(item.product_id, item.quantity - 1)
+                      }
+                    >
+                      −
+                    </Button>
+                    <span className="text-center text-foreground min-w-[3rem]">
+                      {unit ? `${unit} ${item.quantity}` : item.quantity}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={() => updateQuantity(item.product_id, item.quantity + 1)}
+                    >
+                      +
+                    </Button>
+                    <Button
+                      variant="link"
+                      className="ml-2 text-red-400 hover:text-red-600 h-auto p-0"
+                      onClick={() => removeItem(item.product_id)}
+                    >
+                      Remove
+                    </Button>
+                  </div>
+                </Card>
               </li>
             )
           })}
@@ -113,16 +119,17 @@ export default function Basket() {
 
       {confirmError && <p className="text-red-600 mb-4 text-sm">{confirmError}</p>}
 
-      <button
+      <Button
         onClick={handleConfirm}
         disabled={confirming || !order?.items.length}
-        className="w-full bg-[#5c3d1e] text-white rounded-lg py-3 font-medium disabled:opacity-50 hover:bg-[#3d2b1a] transition-colors"
+        className="w-full py-3"
+        size="lg"
       >
         {confirming ? 'Placing order…' : 'Place Order'}
-      </button>
+      </Button>
 
       <div className="mt-8 text-center sm:hidden">
-        <Link to="/orders" className="text-[#5c3d1e] text-sm underline">
+        <Link to="/orders" className="text-primary text-sm underline">
           View order history
         </Link>
       </div>

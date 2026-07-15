@@ -1,5 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import type { Product } from '../types'
+import { Card, CardContent } from './ui/card'
+import { Button } from './ui/button'
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8080'
 
@@ -13,8 +15,8 @@ export default function ProductCard({ product, onAdd, disabled }: Props) {
   const navigate = useNavigate()
 
   return (
-    <div
-      className="bg-white rounded-lg border border-[#e8ddd0] overflow-hidden flex flex-col cursor-pointer hover:border-[#5c3d1e] transition-colors"
+    <Card
+      className="overflow-hidden flex flex-col cursor-pointer hover:border-primary transition-colors"
       onClick={() => navigate(`/products/${product.id}`)}
     >
       {product.image_url ? (
@@ -24,20 +26,21 @@ export default function ProductCard({ product, onAdd, disabled }: Props) {
           className="w-full h-36 object-cover"
         />
       ) : (
-        <div className="w-full h-36 bg-[#f0e8de]" />
+        <div className="w-full h-36 bg-secondary" />
       )}
-      <div className="p-4 flex flex-col gap-2 flex-1">
-        <h3 className="font-semibold text-[#3d2b1a]">{product.name}</h3>
-        <p className="text-sm text-[#8a6a50] flex-1">{product.description}</p>
-        <p className="text-xs text-[#8a6a50]">{product.unit}</p>
-        <button
+      <CardContent className="p-4 flex flex-col gap-2 flex-1">
+        <h3 className="font-semibold text-foreground">{product.name}</h3>
+        <p className="text-sm text-muted-foreground flex-1">{product.description}</p>
+        <p className="text-xs text-muted-foreground">{product.unit}</p>
+        <Button
           onClick={(e) => { e.stopPropagation(); onAdd() }}
           disabled={disabled}
-          className="mt-2 bg-[#5c3d1e] text-white rounded px-3 py-1.5 text-sm disabled:opacity-50 hover:bg-[#3d2b1a] transition-colors"
+          size="sm"
+          className="mt-2"
         >
           Add
-        </button>
-      </div>
-    </div>
+        </Button>
+      </CardContent>
+    </Card>
   )
 }

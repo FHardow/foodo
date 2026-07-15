@@ -23,7 +23,7 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <div className="min-h-screen bg-[#faf7f2]">
+        <div className="min-h-screen bg-background">
           <Nav />
           <main className="max-w-5xl mx-auto px-4 py-6">
             <Routes>

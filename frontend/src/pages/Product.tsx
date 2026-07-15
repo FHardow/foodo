@@ -1,7 +1,10 @@
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
+import { ArrowLeft } from 'lucide-react'
 import { getProduct } from '../api/products'
 import { useBasket } from '../hooks/useBasket'
+import { Card } from '../components/ui/card'
+import { Button } from '../components/ui/button'
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8080'
 
@@ -19,14 +22,14 @@ export default function Product() {
   if (isLoading) {
     return (
       <div className="max-w-lg mx-auto mt-8 animate-pulse">
-        <div className="bg-white rounded-lg border border-[#e8ddd0] overflow-hidden">
-          <div className="w-full h-64 bg-[#f0e8de]" />
+        <Card className="overflow-hidden">
+          <div className="w-full h-64 bg-secondary" />
           <div className="p-6 space-y-3">
-            <div className="h-6 bg-[#f0e8de] rounded w-1/2" />
-            <div className="h-4 bg-[#f0e8de] rounded w-full" />
-            <div className="h-4 bg-[#f0e8de] rounded w-2/3" />
+            <div className="h-6 bg-secondary rounded w-1/2" />
+            <div className="h-4 bg-secondary rounded w-full" />
+            <div className="h-4 bg-secondary rounded w-2/3" />
           </div>
-        </div>
+        </Card>
       </div>
     )
   }
@@ -34,27 +37,27 @@ export default function Product() {
   if (isError || !product) {
     return (
       <div className="text-center py-16">
-        <p className="text-[#8a6a50] mb-4">Product not found.</p>
-        <button
-          onClick={() => navigate('/')}
-          className="text-sm text-[#5c3d1e] hover:underline"
-        >
+        <p className="text-muted-foreground mb-4">Product not found.</p>
+        <Button variant="link" onClick={() => navigate('/')}>
           Back to store
-        </button>
+        </Button>
       </div>
     )
   }
 
   return (
     <div className="max-w-lg mx-auto mt-4">
-      <button
+      <Button
+        variant="ghost"
+        size="sm"
         onClick={() => navigate(-1)}
-        className="text-sm text-[#8a6a50] hover:text-[#5c3d1e] mb-4 inline-flex items-center gap-1"
+        className="mb-4 text-muted-foreground hover:text-primary"
       >
-        ← Back
-      </button>
+        <ArrowLeft className="h-4 w-4" />
+        Back
+      </Button>
 
-      <div className="bg-white rounded-lg border border-[#e8ddd0] overflow-hidden">
+      <Card className="overflow-hidden">
         {product.image_url ? (
           <img
             src={`${BASE_URL}${product.image_url}`}
@@ -62,37 +65,33 @@ export default function Product() {
             className="w-full h-64 object-cover"
           />
         ) : (
-          <div className="w-full h-64 bg-[#f0e8de]" />
+          <div className="w-full h-64 bg-secondary" />
         )}
 
         <div className="p-6 space-y-4">
           <div>
-            <h1 className="text-2xl font-bold text-[#3d2b1a]">{product.name}</h1>
-            <span className="text-xs text-[#8a6a50] uppercase tracking-wide">{product.unit}</span>
+            <h1 className="text-2xl font-bold text-foreground">{product.name}</h1>
+            <span className="text-xs text-muted-foreground uppercase tracking-wide">{product.unit}</span>
           </div>
 
-          <p className="text-[#5c3d1e] leading-relaxed">{product.description}</p>
+          <p className="text-primary leading-relaxed">{product.description}</p>
 
           <div className="flex items-center gap-2 text-sm">
             <span
-              className={`inline-block w-2 h-2 rounded-full ${product.available ? 'bg-green-500' : 'bg-[#e8ddd0]'}`}
+              className={`inline-block w-2 h-2 rounded-full ${product.available ? 'bg-green-500' : 'bg-muted'}`}
             />
-            <span className="text-[#8a6a50]">
+            <span className="text-muted-foreground">
               {product.available ? 'Available' : 'Not available'}
             </span>
           </div>
 
           {product.available && (
-            <button
-              onClick={() => addItem(product)}
-              disabled={isValidating}
-              className="w-full bg-[#5c3d1e] text-white rounded px-4 py-2.5 text-sm font-medium hover:bg-[#3d2b1a] disabled:opacity-50 transition-colors"
-            >
+            <Button onClick={() => addItem(product)} disabled={isValidating} className="w-full">
               Add to basket
-            </button>
+            </Button>
           )}
         </div>
-      </div>
+      </Card>
     </div>
   )
 }
