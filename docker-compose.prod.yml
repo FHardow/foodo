@@ -34,6 +34,8 @@ services:
       DB_NAME: ${DB_NAME:-foodo}
       KEYCLOAK_URL: ${KEYCLOAK_URL}
       KEYCLOAK_REALM: ${KEYCLOAK_REALM:-foodo}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
     labels:
       - traefik.enable=true
       - traefik.http.routers.backend.rule=Host(`foodo.${DOMAIN}`) && PathPrefix(`/api`)
