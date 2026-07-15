@@ -13,6 +13,12 @@ import {
 } from '../../api/products'
 import type { ProductInput } from '../../api/products'
 import type { Product } from '../../types'
+import { Button } from '../../components/ui/button'
+import { Input } from '../../components/ui/input'
+import { Label } from '../../components/ui/label'
+import { Textarea } from '../../components/ui/textarea'
+import { Switch } from '../../components/ui/switch'
+import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle } from '../../components/ui/dialog'
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8080'
 
@@ -97,32 +103,27 @@ export default function AdminProducts() {
   }
 
   if (isLoading) {
-    return <div className="text-center py-16 text-[#8a6a50]">Loading…</div>
+    return <div className="text-center py-16 text-muted-foreground">Loading…</div>
   }
 
   if (isError) {
-    return <div className="text-center py-16 text-[#8a6a50]">Failed to load products.</div>
+    return <div className="text-center py-16 text-muted-foreground">Failed to load products.</div>
   }
 
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-[#5c3d1e]">Products</h1>
-        <button
-          onClick={openCreate}
-          className="bg-[#5c3d1e] text-white rounded px-4 py-2 text-sm hover:bg-[#3d2b1a] transition-colors"
-        >
-          + Add product
-        </button>
+        <h1 className="text-2xl font-bold text-primary">Products</h1>
+        <Button onClick={openCreate}>+ Add product</Button>
       </div>
 
       {products.length === 0 ? (
-        <p className="text-[#8a6a50] text-center py-16">No products yet.</p>
+        <p className="text-muted-foreground text-center py-16">No products yet.</p>
       ) : (
-        <div className="bg-white rounded-lg border border-[#e8ddd0] overflow-hidden">
+        <div className="bg-card rounded-lg border border-border overflow-hidden">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-[#e8ddd0] text-left text-[#8a6a50]">
+              <tr className="border-b border-border text-left text-muted-foreground">
                 <th className="px-4 py-3 w-12"></th>
                 <th className="px-4 py-3">Name</th>
                 <th className="px-4 py-3 hidden sm:table-cell">Unit</th>
@@ -133,7 +134,7 @@ export default function AdminProducts() {
             </thead>
             <tbody>
               {products.map((p) => (
-                <tr key={p.id} className="border-b border-[#e8ddd0] last:border-0">
+                <tr key={p.id} className="border-b border-border last:border-0">
                   <td className="px-4 py-3">
                     {p.image_url ? (
                       <img
@@ -142,63 +143,61 @@ export default function AdminProducts() {
                         className="w-10 h-10 object-cover rounded"
                       />
                     ) : (
-                      <div className="w-10 h-10 bg-[#f0e8de] rounded flex items-center justify-center text-[#c4a882] text-xs">
+                      <div className="w-10 h-10 bg-secondary rounded flex items-center justify-center text-muted-foreground text-xs">
                         No img
                       </div>
                     )}
                   </td>
-                  <td className="px-4 py-3 font-medium text-[#3d2b1a]">{p.name}</td>
-                  <td className="px-4 py-3 hidden sm:table-cell text-[#8a6a50]">{p.unit}</td>
-                  <td className="px-4 py-3 hidden md:table-cell text-[#8a6a50] max-w-xs truncate">
+                  <td className="px-4 py-3 font-medium text-foreground">{p.name}</td>
+                  <td className="px-4 py-3 hidden sm:table-cell text-muted-foreground">{p.unit}</td>
+                  <td className="px-4 py-3 hidden md:table-cell text-muted-foreground max-w-xs truncate">
                     {p.description}
                   </td>
                   <td className="px-4 py-3">
-                    <button
-                      onClick={() => availabilityMutation.mutate({ id: p.id, available: !p.available })}
-                      className={`w-10 h-6 rounded-full transition-colors ${
-                        p.available ? 'bg-[#5c3d1e]' : 'bg-[#e8ddd0]'
-                      }`}
+                    <Switch
+                      checked={p.available}
+                      onCheckedChange={(checked) =>
+                        availabilityMutation.mutate({ id: p.id, available: checked })
+                      }
                       aria-label={p.available ? 'Mark unavailable' : 'Mark available'}
-                    >
-                      <span
-                        className={`block w-4 h-4 bg-white rounded-full mx-1 transition-transform ${
-                          p.available ? 'translate-x-4' : 'translate-x-0'
-                        }`}
-                      />
-                    </button>
+                    />
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2 justify-end">
                       {deleteConfirm === p.id ? (
                         <>
-                          <span className="text-[#8a6a50] text-xs">Delete?</span>
-                          <button
+                          <span className="text-muted-foreground text-xs">Delete?</span>
+                          <Button
+                            variant="link"
+                            className="text-red-600 text-xs h-auto p-0"
                             onClick={() => deleteMutation.mutate(p.id)}
-                            className="text-red-600 text-xs font-medium hover:underline"
                           >
                             Yes
-                          </button>
-                          <button
+                          </Button>
+                          <Button
+                            variant="link"
+                            className="text-muted-foreground text-xs h-auto p-0"
                             onClick={() => setDeleteConfirm(null)}
-                            className="text-[#8a6a50] text-xs hover:underline"
                           >
                             No
-                          </button>
+                          </Button>
                         </>
                       ) : (
                         <>
-                          <button
+                          <Button
+                            variant="link"
+                            className="text-primary text-xs h-auto p-0"
                             onClick={() => openEdit(p)}
-                            className="text-[#5c3d1e] text-xs font-medium hover:underline"
                           >
                             Edit
-                          </button>
-                          <button
+                          </Button>
+                          <Button
+                            variant="link"
+                            className="text-red-500 text-xs h-auto p-0"
                             onClick={() => setDeleteConfirm(p.id)}
-                            className="text-red-500 text-xs font-medium hover:underline"
                           >
                             Delete
-                          </button>
+                          </Button>
                         </>
                       )}
                     </div>
@@ -210,114 +209,96 @@ export default function AdminProducts() {
         </div>
       )}
 
-      {/* Modal */}
-      {modalOpen && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
-            <div className="px-6 py-4 border-b border-[#e8ddd0] flex justify-between items-center">
-              <h2 className="font-semibold text-[#3d2b1a]">
-                {editing ? 'Edit product' : 'Add product'}
-              </h2>
-              <button
-                onClick={() => setModalOpen(false)}
-                className="text-[#8a6a50] hover:text-[#3d2b1a] text-xl leading-none"
-              >
-                ×
-              </button>
+      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editing ? 'Edit product' : 'Add product'}</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="px-6 py-4 space-y-4">
+            <div className="space-y-1">
+              <Label htmlFor="product-name">
+                Name <span className="text-red-400">*</span>
+              </Label>
+              <Input
+                id="product-name"
+                required
+                value={form.name}
+                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+              />
             </div>
-            <form onSubmit={handleSubmit} className="px-6 py-4 space-y-4">
-              <div>
-                <label className="block text-xs font-medium text-[#8a6a50] mb-1">
-                  Name <span className="text-red-400">*</span>
-                </label>
+            <div className="space-y-1">
+              <Label htmlFor="product-unit">
+                Unit <span className="text-red-400">*</span>
+              </Label>
+              <Input
+                id="product-unit"
+                required
+                placeholder="e.g. loaf, dozen"
+                value={form.unit}
+                onChange={(e) => setForm((f) => ({ ...f, unit: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="product-description">Description</Label>
+              <Textarea
+                id="product-description"
+                rows={3}
+                value={form.description}
+                onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Switch
+                id="available"
+                checked={form.available}
+                onCheckedChange={(checked) => setForm((f) => ({ ...f, available: checked }))}
+              />
+              <Label htmlFor="available">Available for ordering</Label>
+            </div>
+            <div>
+              <Label className="block mb-1">Image</Label>
+              {editing?.image_url && !imageFile && (
+                <img
+                  src={`${BASE_URL}${editing.image_url}`}
+                  alt="current"
+                  className="w-16 h-16 object-cover rounded mb-2"
+                />
+              )}
+              <Label
+                htmlFor="product-image"
+                className="inline-flex items-center gap-2 cursor-pointer border border-primary text-primary rounded px-3 py-1.5 text-sm hover:bg-primary hover:text-primary-foreground transition-colors font-normal"
+              >
+                {imageFile ? imageFile.name : 'Choose image…'}
                 <input
-                  required
-                  value={form.name}
-                  onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                  className="w-full border border-[#e8ddd0] rounded px-3 py-2 text-sm focus:outline-none focus:border-[#5c3d1e]"
+                  id="product-image"
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => setImageFile(e.target.files?.[0] ?? null)}
+                  className="sr-only"
                 />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-[#8a6a50] mb-1">
-                  Unit <span className="text-red-400">*</span>
-                </label>
-                <input
-                  required
-                  placeholder="e.g. loaf, dozen"
-                  value={form.unit}
-                  onChange={(e) => setForm((f) => ({ ...f, unit: e.target.value }))}
-                  className="w-full border border-[#e8ddd0] rounded px-3 py-2 text-sm focus:outline-none focus:border-[#5c3d1e]"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-[#8a6a50] mb-1">Description</label>
-                <textarea
-                  rows={3}
-                  value={form.description}
-                  onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-                  className="w-full border border-[#e8ddd0] rounded px-3 py-2 text-sm focus:outline-none focus:border-[#5c3d1e] resize-none"
-                />
-              </div>
-              <div className="flex items-center gap-2">
-                <input
-                  id="available"
-                  type="checkbox"
-                  checked={form.available}
-                  onChange={(e) => setForm((f) => ({ ...f, available: e.target.checked }))}
-                  className="accent-[#5c3d1e]"
-                />
-                <label htmlFor="available" className="text-sm text-[#3d2b1a]">
-                  Available for ordering
-                </label>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-[#8a6a50] mb-1">Image</label>
-                {editing?.image_url && !imageFile && (
-                  <img
-                    src={`${BASE_URL}${editing.image_url}`}
-                    alt="current"
-                    className="w-16 h-16 object-cover rounded mb-2"
-                  />
-                )}
-                <label className="inline-flex items-center gap-2 cursor-pointer border border-[#5c3d1e] text-[#5c3d1e] rounded px-3 py-1.5 text-sm hover:bg-[#5c3d1e] hover:text-white transition-colors">
-                  {imageFile ? imageFile.name : 'Choose image…'}
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => setImageFile(e.target.files?.[0] ?? null)}
-                    className="sr-only"
-                  />
-                </label>
-                {imageFile && (
-                  <button
-                    type="button"
-                    onClick={() => setImageFile(null)}
-                    className="ml-2 text-xs text-[#8a6a50] hover:text-red-500"
-                  >
-                    Remove
-                  </button>
-                )}
-              </div>
-              <div className="flex justify-end gap-3 pt-2">
-                <button
+              </Label>
+              {imageFile && (
+                <Button
                   type="button"
-                  onClick={() => setModalOpen(false)}
-                  className="px-4 py-2 text-sm text-[#8a6a50] hover:text-[#3d2b1a]"
+                  variant="link"
+                  className="ml-2 text-xs text-muted-foreground hover:text-red-500 h-auto p-0"
+                  onClick={() => setImageFile(null)}
                 >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="bg-[#5c3d1e] text-white rounded px-4 py-2 text-sm hover:bg-[#3d2b1a] disabled:opacity-50 transition-colors"
-                >
-                  {submitting ? 'Saving…' : editing ? 'Save changes' : 'Create product'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+                  Remove
+                </Button>
+              )}
+            </div>
+            <DialogFooter className="px-0 pb-0">
+              <Button type="button" variant="ghost" onClick={() => setModalOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={submitting}>
+                {submitting ? 'Saving…' : editing ? 'Save changes' : 'Create product'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
