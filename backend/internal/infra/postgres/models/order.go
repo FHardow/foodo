@@ -10,7 +10,7 @@ type Order struct {
 	UpdatedAt time.Time `gorm:"not null"`
 
 	Items    []OrderItem `gorm:"foreignKey:OrderID;constraint:OnDelete:CASCADE"`
-	UserName string      `gorm:"-"` // populated via JOIN with users table, not persisted
+	UserName string      `gorm:"->"` // read-only, populated via JOIN with users table
 }
 
 func (Order) TableName() string { return "orders" }
