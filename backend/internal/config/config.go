@@ -6,21 +6,25 @@ import (
 )
 
 type Config struct {
-	Env            string
-	Port           string
-	DSN            string
-	KeycloakURL    string
-	KeycloakRealm  string
-	CORSOrigin     string
+	Env              string
+	Port             string
+	DSN              string
+	KeycloakURL      string
+	KeycloakRealm    string
+	CORSOrigin       string
+	TelegramBotToken string
+	TelegramChatID   string
 }
 
 func Load() (*Config, error) {
 	cfg := &Config{
-		Env:           getEnv("ENV", "development"),
-		Port:          getEnv("PORT", "8080"),
-		KeycloakURL:   getEnv("KEYCLOAK_URL", "http://localhost:8180"),
-		KeycloakRealm: getEnv("KEYCLOAK_REALM", "foodo"),
-		CORSOrigin:    os.Getenv("CORS_ORIGIN"),
+		Env:              getEnv("ENV", "development"),
+		Port:             getEnv("PORT", "8080"),
+		KeycloakURL:      getEnv("KEYCLOAK_URL", "http://localhost:8180"),
+		KeycloakRealm:    getEnv("KEYCLOAK_REALM", "foodo"),
+		CORSOrigin:       os.Getenv("CORS_ORIGIN"),
+		TelegramBotToken: os.Getenv("TELEGRAM_BOT_TOKEN"),
+		TelegramChatID:   os.Getenv("TELEGRAM_CHAT_ID"),
 	}
 
 	cfg.DSN = buildDSN()

@@ -9,6 +9,7 @@ export default defineConfig({
         react(),
         tailwindcss(),
         keycloakify({
+            themeName: "foodo",
             accountThemeImplementation: "none"
         })
     ]

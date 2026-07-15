@@ -1,6 +1,26 @@
-# keycloak-theme
+# Keycloak Theme
 
 Custom Keycloakify login theme for foodo. Styled to match the app's warm bakery aesthetic (Tailwind v4, React).
+
+## Stack
+
+- **Keycloakify 11** — React-based Keycloak theme framework
+- **React 18** + TypeScript
+- **Tailwind CSS 4**
+- **Storybook** for isolated page development
+
+## Project Structure
+
+```
+src/
+  login/
+    pages/       Page components (Login, Register)
+    Template.tsx  Shared page layout/wrapper
+    KcPage.tsx    Page router (maps Keycloak page IDs to components)
+    KcContext.ts  Keycloak context type extensions
+    i18n.ts       i18n customizations
+dist_keycloak/   Built .jar files ready for Keycloak deployment
+```
 
 ## Pages
 
@@ -12,7 +32,7 @@ Custom Keycloakify login theme for foodo. Styled to match the app's warm bakery 
 ```bash
 npm install
 npm run dev        # Vite dev server with mock Keycloak context
-npm run storybook  # Storybook for previewing individual pages
+npm run storybook  # Storybook at http://localhost:6006 for previewing individual pages
 ```
 
 ## Build
@@ -24,8 +44,11 @@ npm run build-keycloak-theme
 ```
 
 Produces two JARs in `dist_keycloak/`:
-- `keycloak-theme-for-kc-22-to-25.jar` — Keycloak 22–25
-- `keycloak-theme-for-kc-all-other-versions.jar` — all other versions
+
+| File | Keycloak version |
+|------|-----------------|
+| `keycloak-theme-for-kc-22-to-25.jar` | Keycloak 22–25 |
+| `keycloak-theme-for-kc-all-other-versions.jar` | All other versions |
 
 ## Deployment
 
