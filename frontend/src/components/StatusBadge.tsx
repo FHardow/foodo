@@ -1,4 +1,5 @@
 import type { Order } from '../types'
+import { Badge } from './ui/badge'
 
 const colours: Record<Order['status'], string> = {
   pending:  'bg-amber-100 text-amber-800',
@@ -9,9 +10,5 @@ const colours: Record<Order['status'], string> = {
 }
 
 export default function StatusBadge({ status }: { status: Order['status'] }) {
-  return (
-    <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium capitalize ${colours[status]}`}>
-      {status}
-    </span>
-  )
+  return <Badge className={colours[status]}>{status}</Badge>
 }
