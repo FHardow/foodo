@@ -1516,14 +1516,13 @@ git commit -m "feat: add webpush.Notifier implementing order.CustomerNotifier vi
 **Files:**
 - Modify: `backend/internal/config/config.go`
 - Create: `backend/internal/infra/http/handler/push.go`
+- Test: `backend/internal/infra/http/handler/push_test.go`
 - Modify: `backend/internal/infra/http/router.go`
 - Modify: `backend/cmd/api/main.go`
 
 **Interfaces:**
-- Consumes: `push.Service` (Task 3), `webpush.NewNotifier`/`postgres.NewPushSubscriptionRepo` (Tasks 6/7), `order.Service.WithCustomerNotifier` (Task 4)
+- Consumes: `push.Service` (Task 3), `webpush.NewNotifier`/`postgres.NewPushSubscriptionRepo` (Tasks 6/7), `order.Service.WithCustomerNotifier` (Task 4), the `seedUser` test helper and shared `postJSON`/`assertErrorBody` helpers already in `package handler_test` (added when `order_test.go` was rewritten to fix a pre-existing, unrelated compile break — see the plan's ledger/history; that fix landed before this task, so `internal/infra/http/handler` compiles and its tests run cleanly now)
 - Produces: `handler.PushHandler` (`handler.NewPushHandler(svc *push.Service) *PushHandler`, methods `Subscribe`/`Unsubscribe`), routes `POST /api/v1/push/subscribe` and `DELETE /api/v1/push/subscribe` — consumed by Task 12's frontend `api/push.ts`.
-
-**Note on testing:** `internal/infra/http/handler` already fails to compile (`order_test.go` references a `Fulfill`/`Cancel` API that no longer exists anywhere in the codebase — pre-existing, unrelated to this feature, out of scope to rewrite here). Adding a new `_test.go` file to that same directory would not run until that file is fixed. Skipping an automated handler test for `PushHandler` — its logic is a thin, direct mirror of `OrderHandler.Accept` (parse UUID/JSON, call service, respond) — and rely on `go build ./...` plus the end-to-end manual QA in Task 13 (real browser, real login, real requests) to verify the wiring.
 
 - [ ] **Step 1: Add config fields with fail-fast validation**
 
@@ -1659,7 +1658,130 @@ func (h *PushHandler) Unsubscribe(c *gin.Context) {
 }
 ```
 
-- [ ] **Step 4: Register the routes**
+- [ ] **Step 4: Write and run `PushHandler` tests**
+
+Create `backend/internal/infra/http/handler/push_test.go` (same `package handler_test` as `order_test.go`/`product_test.go`/`user_test.go` — reuses their shared `postJSON` and `assertErrorBody` helpers without redefining them):
+
+```go
+package handler_test
+
+import (
+	"context"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+
+	"encoding/json"
+
+	"github.com/fhardow/foodo/internal/domain/push"
+	"github.com/fhardow/foodo/internal/infra/http/handler"
+	"github.com/fhardow/foodo/internal/infra/http/middleware"
+	"github.com/fhardow/foodo/internal/testutil/mock"
+	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+func setupPushRouter(repo *mock.PushRepo, authUserID string) *gin.Engine {
+	svc := push.NewService(repo)
+	h := handler.NewPushHandler(svc)
+
+	r := gin.New()
+	r.Use(func(c *gin.Context) {
+		c.Set(middleware.UserIDKey, authUserID)
+		c.Next()
+	})
+	r.POST("/push/subscribe", h.Subscribe)
+	r.DELETE("/push/subscribe", h.Unsubscribe)
+
+	return r
+}
+
+func deleteJSON(router *gin.Engine, path string, body any) *httptest.ResponseRecorder {
+	b, _ := json.Marshal(body)
+	req := httptest.NewRequest(http.MethodDelete, path, bytes.NewReader(b))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+	return w
+}
+
+func validSubscribeBody() map[string]any {
+	return map[string]any{
+		"endpoint": "https://push.example.com/abc",
+		"keys": map[string]any{
+			"p256dh": "p256dh-key",
+			"auth":   "auth-key",
+		},
+	}
+}
+
+func TestPushHandler_Subscribe_Success(t *testing.T) {
+	repo := mock.NewPushRepo()
+	userID := uuid.New().String()
+	router := setupPushRouter(repo, userID)
+
+	w := postJSON(router, "/push/subscribe", validSubscribeBody())
+	assert.Equal(t, http.StatusNoContent, w.Code)
+
+	parsedUserID, err := uuid.Parse(userID)
+	require.NoError(t, err)
+	found, err := repo.ListByUser(context.Background(), parsedUserID)
+	require.NoError(t, err)
+	require.Len(t, found, 1)
+	assert.Equal(t, "https://push.example.com/abc", found[0].Endpoint())
+}
+
+func TestPushHandler_Subscribe_InvalidUserID(t *testing.T) {
+	router := setupPushRouter(mock.NewPushRepo(), "not-a-uuid")
+
+	w := postJSON(router, "/push/subscribe", validSubscribeBody())
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestPushHandler_Subscribe_MissingFields(t *testing.T) {
+	router := setupPushRouter(mock.NewPushRepo(), uuid.New().String())
+
+	w := postJSON(router, "/push/subscribe", map[string]any{"endpoint": "https://push.example.com/abc"})
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assertErrorBody(t, w)
+}
+
+func TestPushHandler_Unsubscribe_Success(t *testing.T) {
+	repo := mock.NewPushRepo()
+	userID := uuid.New().String()
+	router := setupPushRouter(repo, userID)
+
+	postJSON(router, "/push/subscribe", validSubscribeBody())
+
+	w := deleteJSON(router, "/push/subscribe", map[string]any{"endpoint": "https://push.example.com/abc"})
+	assert.Equal(t, http.StatusNoContent, w.Code)
+
+	parsedUserID, err := uuid.Parse(userID)
+	require.NoError(t, err)
+	found, err := repo.ListByUser(context.Background(), parsedUserID)
+	require.NoError(t, err)
+	assert.Empty(t, found)
+}
+
+func TestPushHandler_Unsubscribe_MissingEndpoint(t *testing.T) {
+	router := setupPushRouter(mock.NewPushRepo(), uuid.New().String())
+
+	w := deleteJSON(router, "/push/subscribe", map[string]any{})
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+```
+
+Note: `deleteJSON` needs `"bytes"` added to the import block (used for `bytes.NewReader(b)`, same as `postJSON`'s pattern in `user_test.go:66-73`).
+
+Run: `go test ./internal/infra/http/handler/... -run TestPushHandler -v`
+Expected: PASS (6 tests).
+
+Run: `go test ./internal/infra/http/handler/...`
+Expected: all tests in the package pass (this package compiles cleanly now — the `order_test.go` rewrite that unblocked it landed as a prerequisite fix before this task).
+
+- [ ] **Step 5: Register the routes**
 
 In `backend/internal/infra/http/router.go`, add `pushHandler *handler.PushHandler` as a parameter to `NewRouter` (right after `orders`):
 
@@ -1685,7 +1807,7 @@ Inside the authenticated `v1` group, after the `o := v1.Group("/orders")` block,
 		push.DELETE("/subscribe", pushHandler.Unsubscribe)
 ```
 
-- [ ] **Step 5: Wire it up in `main.go`**
+- [ ] **Step 6: Wire it up in `main.go`**
 
 In `backend/cmd/api/main.go`, add imports for `"github.com/fhardow/foodo/internal/domain/push"` and `"github.com/fhardow/foodo/internal/infra/webpush"`.
 
@@ -1725,18 +1847,18 @@ Update the repositories/services/handlers section:
 	router := apphttp.NewRouter(userHandler, productHandler, orderHandler, pushHandler, userSvc, cfg.KeycloakURL, cfg.KeycloakRealm, uploadsDir, cfg.CORSOrigin)
 ```
 
-- [ ] **Step 6: Verify it builds**
+- [ ] **Step 7: Verify it builds**
 
 Run: `go build ./...`
 Expected: Success.
 
-Run: `go vet ./internal/domain/... ./internal/infra/postgres/... ./internal/infra/webpush/...`
-Expected: clean (the handler package's pre-existing, unrelated `order_test.go` failure is untouched by this task and is excluded from this check on purpose).
+Run: `go vet ./internal/domain/... ./internal/infra/postgres/... ./internal/infra/webpush/... ./internal/infra/http/...`
+Expected: clean.
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 8: Commit**
 
 ```bash
-git add backend/internal/config/config.go backend/internal/infra/http/handler/push.go backend/internal/infra/http/router.go backend/cmd/api/main.go
+git add backend/internal/config/config.go backend/internal/infra/http/handler/push.go backend/internal/infra/http/handler/push_test.go backend/internal/infra/http/router.go backend/cmd/api/main.go
 git commit -m "feat: wire push subscribe/unsubscribe endpoints and customer notifier"
 ```
 
@@ -2270,8 +2392,8 @@ git commit -m "feat: add NotifyMeButton opt-in control to Order Status page"
 ## Final verification checklist
 
 - [ ] `cd backend && go build ./...` succeeds
-- [ ] `cd backend && go vet ./internal/domain/... ./internal/infra/postgres/... ./internal/infra/webpush/...` is clean (excludes the pre-existing, unrelated `internal/infra/http/handler` breakage)
-- [ ] `cd backend && go test ./internal/domain/... ./internal/infra/postgres/... ./internal/infra/webpush/... -v` all pass
+- [ ] `cd backend && go vet ./...` is clean (the `internal/infra/http/handler` package's pre-existing `order_test.go` breakage was fixed as a prerequisite before Task 8)
+- [ ] `cd backend && go test ./... -v` all pass (excluding testcontainer-based tests if Docker is unavailable in this environment)
 - [ ] `cd frontend && npx tsc -b --noEmit` succeeds
 - [ ] `cd frontend && npm run test` passes
 - [ ] `cd frontend && npm run test:e2e` passes
