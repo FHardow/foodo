@@ -2,6 +2,7 @@ import { useParams, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { getOrder } from '../api/orders'
 import StatusBadge from '../components/StatusBadge'
+import NotifyMeButton from '../components/NotifyMeButton'
 import { Card } from '../components/ui/card'
 import type { Order } from '../types'
 
@@ -41,6 +42,9 @@ export default function OrderStatus() {
       <div className="flex items-center gap-3 mb-2">
         <h1 className="text-2xl font-bold text-foreground">Order</h1>
         <StatusBadge status={order.status} />
+      </div>
+      <div className="mb-4">
+        <NotifyMeButton />
       </div>
       <p className="text-sm text-muted-foreground mb-6">
         Placed {new Date(order.created_at).toLocaleDateString()}
