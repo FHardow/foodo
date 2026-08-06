@@ -10,6 +10,7 @@ import (
 
 	"github.com/fhardow/foodo/internal/domain/order"
 	"github.com/fhardow/foodo/internal/domain/product"
+	"github.com/fhardow/foodo/internal/domain/push"
 	"github.com/fhardow/foodo/internal/domain/user"
 	domerrors "github.com/fhardow/foodo/pkg/errors"
 	"github.com/google/uuid"
@@ -248,5 +249,60 @@ func (r *OrderRepo) Delete(_ context.Context, id order.ID) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	delete(r.orders, id.String())
+	return nil
+}
+
+// ---------------------------------------------------------------------------
+// PushRepo
+// ---------------------------------------------------------------------------
+
+// PushRepo is an in-memory implementation of push.Repository.
+type PushRepo struct {
+	mu sync.RWMutex
+
+	ErrSave             error
+	ErrListByUser       error
+	ErrDeleteByEndpoint error
+
+	subs map[string]*push.Subscription // keyed by endpoint
+}
+
+// NewPushRepo returns a ready-to-use PushRepo.
+func NewPushRepo() *PushRepo {
+	return &PushRepo{subs: make(map[string]*push.Subscription)}
+}
+
+func (r *PushRepo) Save(_ context.Context, s *push.Subscription) error {
+	if r.ErrSave != nil {
+		return r.ErrSave
+	}
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.subs[s.Endpoint()] = s
+	return nil
+}
+
+func (r *PushRepo) ListByUser(_ context.Context, userID uuid.UUID) ([]*push.Subscription, error) {
+	if r.ErrListByUser != nil {
+		return nil, r.ErrListByUser
+	}
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	out := make([]*push.Subscription, 0)
+	for _, s := range r.subs {
+		if s.UserID() == userID {
+			out = append(out, s)
+		}
+	}
+	return out, nil
+}
+
+func (r *PushRepo) DeleteByEndpoint(_ context.Context, endpoint string) error {
+	if r.ErrDeleteByEndpoint != nil {
+		return r.ErrDeleteByEndpoint
+	}
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	delete(r.subs, endpoint)
 	return nil
 }
