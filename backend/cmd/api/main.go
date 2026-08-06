@@ -13,11 +13,13 @@ import (
 	"github.com/fhardow/foodo/internal/config"
 	"github.com/fhardow/foodo/internal/domain/order"
 	"github.com/fhardow/foodo/internal/domain/product"
+	"github.com/fhardow/foodo/internal/domain/push"
 	"github.com/fhardow/foodo/internal/domain/user"
 	apphttp "github.com/fhardow/foodo/internal/infra/http"
 	"github.com/fhardow/foodo/internal/infra/http/handler"
 	"github.com/fhardow/foodo/internal/infra/postgres"
 	"github.com/fhardow/foodo/internal/infra/telegram"
+	"github.com/fhardow/foodo/internal/infra/webpush"
 	"github.com/fhardow/foodo/pkg/logger"
 )
 
@@ -47,22 +49,33 @@ func main() {
 	userRepo    := postgres.NewUserRepo(db)
 	productRepo := postgres.NewProductRepo(db)
 	orderRepo   := postgres.NewOrderRepo(db)
+	pushRepo, err := postgres.NewPushSubscriptionRepo(db, cfg.PushEncryptionKey)
+	if err != nil {
+		log.Error("failed to init push subscription repo", "err", err)
+		os.Exit(1)
+	}
 
 	// Domain services
 	userSvc    := user.NewService(userRepo)
 	productSvc := product.NewService(productRepo)
 	orderSvc   := order.NewService(orderRepo, productRepo, userRepo)
+	pushSvc    := push.NewService(pushRepo)
 	if cfg.TelegramBotToken != "" && cfg.TelegramChatID != "" {
 		orderSvc.WithNotifier(telegram.NewNotifier(cfg.TelegramBotToken, cfg.TelegramChatID))
 		log.Info("telegram order notifications enabled")
+	}
+	if cfg.VAPIDPublicKey != "" && cfg.VAPIDPrivateKey != "" {
+		orderSvc.WithCustomerNotifier(webpush.NewNotifier(pushRepo, cfg.VAPIDPublicKey, cfg.VAPIDPrivateKey, cfg.VAPIDSubject))
+		log.Info("push order notifications enabled")
 	}
 
 	// HTTP handlers
 	userHandler    := handler.NewUserHandler(userSvc)
 	productHandler := handler.NewProductHandler(productSvc, uploadsDir)
 	orderHandler   := handler.NewOrderHandler(orderSvc)
+	pushHandler    := handler.NewPushHandler(pushSvc)
 
-	router := apphttp.NewRouter(userHandler, productHandler, orderHandler, userSvc, cfg.KeycloakURL, cfg.KeycloakRealm, uploadsDir, cfg.CORSOrigin)
+	router := apphttp.NewRouter(userHandler, productHandler, orderHandler, pushHandler, userSvc, cfg.KeycloakURL, cfg.KeycloakRealm, uploadsDir, cfg.CORSOrigin)
 	srv    := apphttp.NewServer(cfg.Port, router, log)
 
 	// Graceful shutdown
