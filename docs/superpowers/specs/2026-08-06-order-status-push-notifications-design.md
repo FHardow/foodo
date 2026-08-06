@@ -61,7 +61,7 @@ type Repository interface {
 }
 ```
 
-A subscription is one browser+device pairing. `Save` upserts on `endpoint` (re-subscribing the same browser replaces the old row, no dupes).
+A subscription is one browser+device pairing. `Save` upserts on `endpoint` (re-subscribing the same browser replaces the old row, no dupes). The domain type holds plaintext fields — encryption is a persistence-layer concern, applied at the `internal/infra/postgres` boundary (see **At-rest encryption** below), not in the domain model.
 
 ### Order domain: second notifier hook
 
@@ -108,22 +108,37 @@ func (n *Notifier) OrderFinished(o *order.Order) { n.notify(o, "Order ready", "Y
 
 ```sql
 CREATE TABLE push_subscriptions (
-    id         UUID PRIMARY KEY,
-    user_id    UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    endpoint   TEXT NOT NULL UNIQUE,
-    p256dh     TEXT NOT NULL,
-    auth       TEXT NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    id            UUID PRIMARY KEY,
+    user_id       UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    endpoint      TEXT NOT NULL,        -- AES-256-GCM ciphertext, base64
+    endpoint_hash TEXT NOT NULL UNIQUE, -- SHA-256(endpoint), hex — lookup/upsert key
+    p256dh        TEXT NOT NULL,        -- ciphertext, base64
+    auth          TEXT NOT NULL,        -- ciphertext, base64
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX idx_push_subscriptions_user_id ON push_subscriptions(user_id);
 ```
 
+`endpoint_hash` exists because AES-GCM ciphertext is non-deterministic (random nonce per encryption) — the same plaintext endpoint encrypts to a different value every time, so it can't carry a `UNIQUE` constraint or be looked up with `WHERE endpoint = ?`. The hash is deterministic and only used for equality lookups (upsert-on-resubscribe, delete-on-410); it never appears in plaintext responses or logs.
+
 Plus matching `.down.sql` (`DROP TABLE push_subscriptions;`), and a GORM model in `internal/infra/postgres/models/push_subscription.go` following the existing `models.User`/`models.Order` pattern.
+
+### At-rest encryption
+
+`endpoint`, `p256dh`, and `auth` are encrypted with **AES-256-GCM** before they hit Postgres, applied inside the `internal/infra/postgres` repository implementation — the domain layer and callers never see ciphertext.
+
+- Key: `PUSH_ENCRYPTION_KEY`, 32 random bytes, base64-encoded, generated once (`openssl rand -base64 32`) and set as an env var — same secret-handling pattern as `VAPID_PRIVATE_KEY`/`TELEGRAM_BOT_TOKEN`.
+- `Save(ctx, s)`: for each of the three fields, generate a random 12-byte nonce, encrypt with AES-GCM, store `base64(nonce || ciphertext)`. Also compute `endpoint_hash = hex(sha256(s.Endpoint))` for the lookup column.
+- `ListByUser`/read paths: decrypt each field back to plaintext before constructing the domain `Subscription` struct.
+- `DeleteByEndpoint(ctx, endpoint)`: hash the input, `DELETE ... WHERE endpoint_hash = ?`. The `Repository` interface itself is unchanged — it still takes/returns plaintext; hashing and crypto are internal to the Postgres implementation.
+- New helper file: `internal/infra/postgres/crypto.go` (`encryptField`/`decryptField`, unit-tested round-trip).
+
+Threat model this covers: a DB-only leak (backup exposure, misconfigured read replica, stolen disk) doesn't hand over live push endpoints, as long as `PUSH_ENCRYPTION_KEY` (an application secret, stored separately from the DB) doesn't leak alongside it. It does not protect against a full app+DB compromise — nothing would, at that point.
 
 ### Config & routes
 
-- `config.go`: `VAPIDPublicKey`, `VAPIDPrivateKey`, `VAPIDSubject` read from env (`VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`). Keys generated once with `webpush-go`'s keygen helper and stored as secrets like `TELEGRAM_BOT_TOKEN` today. Private key never leaves the backend.
-- `.env.example`: add the three vars, plus `VITE_VAPID_PUBLIC_KEY` (public key only — safe to bake into the frontend build, same treatment as `VITE_KEYCLOAK_CLIENT_ID`).
+- `config.go`: `VAPIDPublicKey`, `VAPIDPrivateKey`, `VAPIDSubject`, `PushEncryptionKey` read from env (`VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`, `PUSH_ENCRYPTION_KEY`). Keys generated once (VAPID via `webpush-go`'s keygen helper, encryption key via `openssl rand -base64 32`) and stored as secrets like `TELEGRAM_BOT_TOKEN` today. Private key and encryption key never leave the backend.
+- `.env.example`: add the four vars, plus `VITE_VAPID_PUBLIC_KEY` (public key only — safe to bake into the frontend build, same treatment as `VITE_KEYCLOAK_CLIENT_ID`).
 - New routes under the existing authenticated `/api/v1` group in `router.go`:
   ```go
   push := v1.Group("/push")
@@ -203,12 +218,13 @@ Admin drags card (Accept) on kanban
 - VAPID private key stays server-side only; frontend only ever sees the public key.
 - Subscribe/unsubscribe endpoints trust the JWT-derived user ID from `middleware.UserIDKey`, never a client-supplied user id — prevents subscribing/unsubscribing on someone else's behalf.
 - Endpoint URLs (which double as bearer-like tokens for the push service) are stored server-side only, never returned in any list/get response beyond delete-by-caller's-own-endpoint.
+- `endpoint`/`p256dh`/`auth` encrypted at rest with AES-256-GCM (see **At-rest encryption** above) — a DB-only leak doesn't expose usable push endpoints as long as `PUSH_ENCRYPTION_KEY` stays separate from the DB backup/dump.
 
 ---
 
 ## Testing
 
-- Backend: unit tests for `push.Repository` (Postgres testcontainer, same pattern as `order_repo_test.go`), and for `order.Service` verifying `Accept`/`StartProgress`/`Finish` call the right `CustomerNotifier` method (fake notifier, same pattern likely already used for the Telegram `Notifier` interface in `service_test.go`) and that `Unaccept`/`StopProgress`/`Unfinish` call none.
+- Backend: unit tests for `push.Repository` (Postgres testcontainer, same pattern as `order_repo_test.go`) — including asserting the raw row in Postgres does *not* contain the plaintext endpoint, so the encryption isn't silently a no-op. Plus a standalone round-trip test for `encryptField`/`decryptField` in `crypto.go`. And for `order.Service` verifying `Accept`/`StartProgress`/`Finish` call the right `CustomerNotifier` method (fake notifier, same pattern likely already used for the Telegram `Notifier` interface in `service_test.go`) and that `Unaccept`/`StopProgress`/`Unfinish` call none.
 - `webpush.Notifier` itself: unit test the payload/message text per method; skip testing actual delivery against a real push service (no reasonable way to do that in CI) — trust the library.
 - Frontend: no realistic way to assert actual OS notifications in Playwright/CI (requires a real browser push subscription + HTTPS or localhost secure context + user gesture). Manual QA: subscribe in a real browser, drag a card on the kanban board, confirm the OS notification appears, including with the tab closed.
 - Note for local dev: Push API requires a secure context — `localhost` is exempted by browsers, so dev works over plain HTTP on `localhost` without extra TLS setup.
@@ -220,3 +236,4 @@ Admin drags card (Accept) on kanban
 - Trigger scope: customer's own drag-triggered action only was rejected in favor of the customer being notified (see conversation) — the person dragging the card (admin) is not the person who needs the notification.
 - Only forward transitions notify; undo actions are silent.
 - Opt-in lives on the Order Status page, not a separate global settings page — account-wide once granted.
+- `endpoint`/`p256dh`/`auth` are encrypted at rest (AES-256-GCM, app-level, key in `PUSH_ENCRYPTION_KEY`) rather than left plaintext — decided after discussing the DB-only-leak threat model; added an `endpoint_hash` column since GCM's random nonce makes ciphertext non-lookupable directly.
