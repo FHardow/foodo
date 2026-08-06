@@ -3,10 +3,12 @@ package postgres
 import (
 	"context"
 	"encoding/base64"
+	"errors"
 	"fmt"
 
 	"github.com/fhardow/foodo/internal/domain/push"
 	"github.com/fhardow/foodo/internal/infra/postgres/models"
+	domerrors "github.com/fhardow/foodo/pkg/errors"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -72,6 +74,18 @@ func (r *pushSubscriptionRepo) ListByUser(ctx context.Context, userID uuid.UUID)
 		subs = append(subs, s)
 	}
 	return subs, nil
+}
+
+func (r *pushSubscriptionRepo) FindByEndpoint(ctx context.Context, endpoint string) (*push.Subscription, error) {
+	var m models.PushSubscription
+	err := dbFromCtx(ctx, r.db).First(&m, "endpoint_hash = ?", hashEndpoint(endpoint)).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, domerrors.NotFound("push subscription not found")
+		}
+		return nil, err
+	}
+	return r.toDomain(&m)
 }
 
 func (r *pushSubscriptionRepo) DeleteByEndpoint(ctx context.Context, endpoint string) error {

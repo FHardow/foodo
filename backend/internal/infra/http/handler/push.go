@@ -52,12 +52,20 @@ func (h *PushHandler) Subscribe(c *gin.Context) {
 }
 
 func (h *PushHandler) Unsubscribe(c *gin.Context) {
+	subRaw, _ := c.Get(middleware.UserIDKey)
+	sub, _ := subRaw.(string)
+	userID, err := uuid.Parse(sub)
+	if err != nil {
+		respond.Error(c, domerrors.BadRequest("invalid user ID in token"))
+		return
+	}
 	var req unsubscribeRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		respond.Error(c, domerrors.BadRequest("%s", err.Error()))
 		return
 	}
-	if err := h.svc.Unsubscribe(c.Request.Context(), req.Endpoint); err != nil {
+	isOwner := middleware.HasRole(c, "owner")
+	if err := h.svc.Unsubscribe(c.Request.Context(), userID, isOwner, req.Endpoint); err != nil {
 		respond.Error(c, err)
 		return
 	}

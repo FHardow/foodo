@@ -3,6 +3,7 @@ package push
 import (
 	"context"
 
+	domerrors "github.com/fhardow/foodo/pkg/errors"
 	"github.com/google/uuid"
 )
 
@@ -25,6 +26,13 @@ func (s *Service) Subscribe(ctx context.Context, userID uuid.UUID, endpoint, p25
 	return sub, nil
 }
 
-func (s *Service) Unsubscribe(ctx context.Context, endpoint string) error {
+func (s *Service) Unsubscribe(ctx context.Context, callerUserID uuid.UUID, isOwner bool, endpoint string) error {
+	sub, err := s.repo.FindByEndpoint(ctx, endpoint)
+	if err != nil {
+		return err
+	}
+	if sub.UserID() != callerUserID && !isOwner {
+		return domerrors.Forbidden("cannot unsubscribe another user's push subscription")
+	}
 	return s.repo.DeleteByEndpoint(ctx, endpoint)
 }

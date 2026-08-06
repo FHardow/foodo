@@ -8,6 +8,7 @@ import (
 
 	"github.com/fhardow/foodo/internal/domain/push"
 	repopostgres "github.com/fhardow/foodo/internal/infra/postgres"
+	domerrors "github.com/fhardow/foodo/pkg/errors"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -70,6 +71,31 @@ func TestPushSubscriptionRepo_Save_UpsertsOnEndpoint(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, found, 1, "re-subscribing the same endpoint must upsert, not duplicate")
 	assert.Equal(t, "new-p256dh", found[0].P256dh())
+}
+
+func TestPushSubscriptionRepo_FindByEndpoint_Success(t *testing.T) {
+	db := newTestDB(t)
+	repo := newTestPushRepo(t, db)
+	ctx := context.Background()
+
+	userID := uuid.New()
+	sub, err := push.New(userID, "https://push.example.com/find-me", "p256dh-key", "auth-key")
+	require.NoError(t, err)
+	require.NoError(t, repo.Save(ctx, sub))
+
+	found, err := repo.FindByEndpoint(ctx, "https://push.example.com/find-me")
+	require.NoError(t, err)
+	assert.Equal(t, userID, found.UserID())
+	assert.Equal(t, "p256dh-key", found.P256dh())
+}
+
+func TestPushSubscriptionRepo_FindByEndpoint_NotFound(t *testing.T) {
+	db := newTestDB(t)
+	repo := newTestPushRepo(t, db)
+
+	_, err := repo.FindByEndpoint(context.Background(), "https://push.example.com/does-not-exist")
+	require.Error(t, err)
+	assert.True(t, domerrors.Is(err, domerrors.ErrNotFound))
 }
 
 func TestPushSubscriptionRepo_DeleteByEndpoint(t *testing.T) {

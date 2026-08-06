@@ -19,13 +19,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func setupPushRouter(repo *mock.PushRepo, authUserID string) *gin.Engine {
+func setupPushRouter(repo *mock.PushRepo, authUserID string, roles []string) *gin.Engine {
 	svc := push.NewService(repo)
 	h := handler.NewPushHandler(svc)
 
 	r := gin.New()
 	r.Use(func(c *gin.Context) {
 		c.Set(middleware.UserIDKey, authUserID)
+		c.Set(middleware.RolesKey, roles)
 		c.Next()
 	})
 	r.POST("/push/subscribe", h.Subscribe)
@@ -56,7 +57,7 @@ func validSubscribeBody() map[string]any {
 func TestPushHandler_Subscribe_Success(t *testing.T) {
 	repo := mock.NewPushRepo()
 	userID := uuid.New().String()
-	router := setupPushRouter(repo, userID)
+	router := setupPushRouter(repo, userID, nil)
 
 	w := postJSON(router, "/push/subscribe", validSubscribeBody())
 	assert.Equal(t, http.StatusNoContent, w.Code)
@@ -70,14 +71,14 @@ func TestPushHandler_Subscribe_Success(t *testing.T) {
 }
 
 func TestPushHandler_Subscribe_InvalidUserID(t *testing.T) {
-	router := setupPushRouter(mock.NewPushRepo(), "not-a-uuid")
+	router := setupPushRouter(mock.NewPushRepo(), "not-a-uuid", nil)
 
 	w := postJSON(router, "/push/subscribe", validSubscribeBody())
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
 
 func TestPushHandler_Subscribe_MissingFields(t *testing.T) {
-	router := setupPushRouter(mock.NewPushRepo(), uuid.New().String())
+	router := setupPushRouter(mock.NewPushRepo(), uuid.New().String(), nil)
 
 	w := postJSON(router, "/push/subscribe", map[string]any{"endpoint": "https://push.example.com/abc"})
 	assert.Equal(t, http.StatusBadRequest, w.Code)
@@ -87,7 +88,7 @@ func TestPushHandler_Subscribe_MissingFields(t *testing.T) {
 func TestPushHandler_Unsubscribe_Success(t *testing.T) {
 	repo := mock.NewPushRepo()
 	userID := uuid.New().String()
-	router := setupPushRouter(repo, userID)
+	router := setupPushRouter(repo, userID, nil)
 
 	postJSON(router, "/push/subscribe", validSubscribeBody())
 
@@ -102,8 +103,42 @@ func TestPushHandler_Unsubscribe_Success(t *testing.T) {
 }
 
 func TestPushHandler_Unsubscribe_MissingEndpoint(t *testing.T) {
-	router := setupPushRouter(mock.NewPushRepo(), uuid.New().String())
+	router := setupPushRouter(mock.NewPushRepo(), uuid.New().String(), nil)
 
 	w := deleteJSON(router, "/push/subscribe", map[string]any{})
 	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestPushHandler_Unsubscribe_WrongUser_Forbidden(t *testing.T) {
+	repo := mock.NewPushRepo()
+	ownerRouter := setupPushRouter(repo, uuid.New().String(), nil)
+	postJSON(ownerRouter, "/push/subscribe", validSubscribeBody())
+
+	attackerRouter := setupPushRouter(repo, uuid.New().String(), nil)
+	w := deleteJSON(attackerRouter, "/push/subscribe", map[string]any{"endpoint": "https://push.example.com/abc"})
+	assert.Equal(t, http.StatusForbidden, w.Code)
+}
+
+func TestPushHandler_Unsubscribe_Owner_CanDeleteAnyUsersSubscription(t *testing.T) {
+	repo := mock.NewPushRepo()
+	subscriberID := uuid.New().String()
+	subscriberRouter := setupPushRouter(repo, subscriberID, nil)
+	postJSON(subscriberRouter, "/push/subscribe", validSubscribeBody())
+
+	adminRouter := setupPushRouter(repo, uuid.New().String(), []string{"owner"})
+	w := deleteJSON(adminRouter, "/push/subscribe", map[string]any{"endpoint": "https://push.example.com/abc"})
+	assert.Equal(t, http.StatusNoContent, w.Code)
+
+	parsedSubscriberID, err := uuid.Parse(subscriberID)
+	require.NoError(t, err)
+	found, err := repo.ListByUser(context.Background(), parsedSubscriberID)
+	require.NoError(t, err)
+	assert.Empty(t, found)
+}
+
+func TestPushHandler_Unsubscribe_NotFound(t *testing.T) {
+	router := setupPushRouter(mock.NewPushRepo(), uuid.New().String(), nil)
+
+	w := deleteJSON(router, "/push/subscribe", map[string]any{"endpoint": "https://push.example.com/never-subscribed"})
+	assert.Equal(t, http.StatusNotFound, w.Code)
 }

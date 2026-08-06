@@ -262,6 +262,7 @@ type PushRepo struct {
 
 	ErrSave             error
 	ErrListByUser       error
+	ErrFindByEndpoint   error
 	ErrDeleteByEndpoint error
 
 	subs map[string]*push.Subscription // keyed by endpoint
@@ -295,6 +296,19 @@ func (r *PushRepo) ListByUser(_ context.Context, userID uuid.UUID) ([]*push.Subs
 		}
 	}
 	return out, nil
+}
+
+func (r *PushRepo) FindByEndpoint(_ context.Context, endpoint string) (*push.Subscription, error) {
+	if r.ErrFindByEndpoint != nil {
+		return nil, r.ErrFindByEndpoint
+	}
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	sub, ok := r.subs[endpoint]
+	if !ok {
+		return nil, domerrors.NotFound("push subscription for endpoint %s not found", endpoint)
+	}
+	return sub, nil
 }
 
 func (r *PushRepo) DeleteByEndpoint(_ context.Context, endpoint string) error {

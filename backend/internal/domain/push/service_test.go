@@ -60,9 +60,53 @@ func TestService_Unsubscribe_Success(t *testing.T) {
 	_, err := svc.Subscribe(context.Background(), userID, "https://push.example.com/abc", "p256dh-key", "auth-key")
 	require.NoError(t, err)
 
-	require.NoError(t, svc.Unsubscribe(context.Background(), "https://push.example.com/abc"))
+	require.NoError(t, svc.Unsubscribe(context.Background(), userID, false, "https://push.example.com/abc"))
 
 	found, err := repo.ListByUser(context.Background(), userID)
+	require.NoError(t, err)
+	assert.Empty(t, found)
+}
+
+func TestService_Unsubscribe_NotFound(t *testing.T) {
+	repo := mock.NewPushRepo()
+	svc := push.NewService(repo)
+
+	err := svc.Unsubscribe(context.Background(), uuid.New(), false, "https://push.example.com/never-subscribed")
+	require.Error(t, err)
+	assert.True(t, domerrors.Is(err, domerrors.ErrNotFound))
+}
+
+func TestService_Unsubscribe_WrongUser_Forbidden(t *testing.T) {
+	repo := mock.NewPushRepo()
+	svc := push.NewService(repo)
+	ownerID := uuid.New()
+	attackerID := uuid.New()
+
+	_, err := svc.Subscribe(context.Background(), ownerID, "https://push.example.com/abc", "p256dh-key", "auth-key")
+	require.NoError(t, err)
+
+	err = svc.Unsubscribe(context.Background(), attackerID, false, "https://push.example.com/abc")
+	require.Error(t, err)
+	assert.True(t, domerrors.Is(err, domerrors.ErrForbidden))
+
+	// subscription must still exist
+	found, err := repo.ListByUser(context.Background(), ownerID)
+	require.NoError(t, err)
+	assert.Len(t, found, 1)
+}
+
+func TestService_Unsubscribe_AdminCanDeleteAnyUsersSubscription(t *testing.T) {
+	repo := mock.NewPushRepo()
+	svc := push.NewService(repo)
+	ownerID := uuid.New()
+	adminID := uuid.New()
+
+	_, err := svc.Subscribe(context.Background(), ownerID, "https://push.example.com/abc", "p256dh-key", "auth-key")
+	require.NoError(t, err)
+
+	require.NoError(t, svc.Unsubscribe(context.Background(), adminID, true, "https://push.example.com/abc"))
+
+	found, err := repo.ListByUser(context.Background(), ownerID)
 	require.NoError(t, err)
 	assert.Empty(t, found)
 }
