@@ -64,7 +64,8 @@ func main() {
 		orderSvc.WithNotifier(telegram.NewNotifier(cfg.TelegramBotToken, cfg.TelegramChatID))
 		log.Info("telegram order notifications enabled")
 	}
-	if cfg.VAPIDPublicKey != "" && cfg.VAPIDPrivateKey != "" {
+	// VAPIDSubject is also required — push services reject an empty "mailto:" JWT claim
+	if cfg.VAPIDPublicKey != "" && cfg.VAPIDPrivateKey != "" && cfg.VAPIDSubject != "" {
 		orderSvc.WithCustomerNotifier(webpush.NewNotifier(pushRepo, cfg.VAPIDPublicKey, cfg.VAPIDPrivateKey, cfg.VAPIDSubject))
 		log.Info("push order notifications enabled")
 	}

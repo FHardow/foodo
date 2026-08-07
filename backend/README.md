@@ -317,10 +317,12 @@ make build
 | `DB_SSLMODE` | `disable` for local, `require` for prod |
 | `CORS_ORIGIN` | Allowed frontend origin |
 | `KEYCLOAK_URL` | Keycloak base URL |
+| `PUSH_ENCRYPTION_KEY` | **Required.** 32 random bytes, base64-encoded, used to encrypt push subscription secrets at rest. The backend refuses to start without it, even if `VAPID_*` push keys are unset. Generate with `openssl rand -base64 32`. |
+| `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` | Optional — enable Web Push customer notifications on order status changes. All three must be set together (a missing `VAPID_SUBJECT` silently disables sending). Generate keys with `npx web-push generate-vapid-keys`. |
 
 ## Migrations
 
-Migrations run automatically on startup. To run or roll back manually (requires [golang-migrate](https://github.com/golang-migrate/migrate)):
+Migrations are **not** applied automatically on startup — run them manually (requires [golang-migrate](https://github.com/golang-migrate/migrate)) after pulling changes that add new migration files:
 
 ```bash
 make migrate-up      # apply all pending

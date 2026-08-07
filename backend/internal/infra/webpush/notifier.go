@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
+	"time"
 
 	sherwebpush "github.com/SherClockHolmes/webpush-go"
 	"github.com/fhardow/foodo/internal/domain/order"
@@ -72,9 +73,14 @@ func (n *Notifier) notify(o *order.Order, title, body string) {
 			VAPIDPublicKey:  n.vapidPub,
 			VAPIDPrivateKey: n.vapidPriv,
 			TTL:             30,
+			HTTPClient:      &http.Client{Timeout: 10 * time.Second},
 		})
 		if err != nil {
-			slog.Error("push: send failed", "err", err, "order_id", o.ID())
+			// Don't log the raw error: it may embed the subscription endpoint
+			// (an *url.Error from http.Client.Do includes the request URL),
+			// which is the secret the at-rest encryption is meant to protect.
+			// subscription_id is enough to identify which subscription failed.
+			slog.Error("push: send failed", "err", err, "order_id", o.ID(), "subscription_id", s.ID())
 			continue
 		}
 		resp.Body.Close()
