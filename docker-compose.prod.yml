@@ -54,7 +54,7 @@ services:
       - traefik.http.routers.uploads.service=backend
       - traefik.http.services.backend.loadbalancer.server.port=8080
     volumes:
-      - uploads:/app/uploads
+      - /home/keycloak/foodo/uploads:/app/uploads
     networks:
       - traefik-public
       - internal
@@ -90,4 +90,3 @@ networks:
 
 volumes:
   postgres_data:
-  uploads:
