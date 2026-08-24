@@ -61,6 +61,8 @@ services:
   # ── PostgreSQL ─────────────────────────────────────────────────────────────
   postgres:
     image: postgres:18-alpine
+    ports: 
+     - 5501:5432
     environment:
       POSTGRES_USER: ${DB_USER:-foodo}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
