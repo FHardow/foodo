@@ -11,18 +11,30 @@ import (
 )
 
 type Service struct {
-	repo        Repository
-	productRepo product.Repository
-	userRepo    user.Repository
-	notifier    Notifier
+	repo             Repository
+	productRepo      product.Repository
+	userRepo         user.Repository
+	notifier         Notifier
+	customerNotifier CustomerNotifier
 }
 
 func NewService(repo Repository, productRepo product.Repository, userRepo user.Repository) *Service {
-	return &Service{repo: repo, productRepo: productRepo, userRepo: userRepo, notifier: noopNotifier{}}
+	return &Service{
+		repo:             repo,
+		productRepo:      productRepo,
+		userRepo:         userRepo,
+		notifier:         noopNotifier{},
+		customerNotifier: noopCustomerNotifier{},
+	}
 }
 
 func (s *Service) WithNotifier(n Notifier) *Service {
 	s.notifier = n
+	return s
+}
+
+func (s *Service) WithCustomerNotifier(n CustomerNotifier) *Service {
+	s.customerNotifier = n
 	return s
 }
 
@@ -116,6 +128,7 @@ func (s *Service) Accept(ctx context.Context, id ID) (*Order, error) {
 	if err := s.repo.Save(ctx, o); err != nil {
 		return nil, err
 	}
+	go s.customerNotifier.OrderAccepted(o)
 	return o, nil
 }
 
@@ -130,6 +143,7 @@ func (s *Service) StartProgress(ctx context.Context, id ID) (*Order, error) {
 	if err := s.repo.Save(ctx, o); err != nil {
 		return nil, err
 	}
+	go s.customerNotifier.OrderStarted(o)
 	return o, nil
 }
 
@@ -144,6 +158,7 @@ func (s *Service) Finish(ctx context.Context, id ID) (*Order, error) {
 	if err := s.repo.Save(ctx, o); err != nil {
 		return nil, err
 	}
+	go s.customerNotifier.OrderFinished(o)
 	return o, nil
 }
 

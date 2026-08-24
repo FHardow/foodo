@@ -15,6 +15,7 @@ func NewRouter(
 	users *handler.UserHandler,
 	products *handler.ProductHandler,
 	orders *handler.OrderHandler,
+	pushHandler *handler.PushHandler,
 	userSvc *user.Service,
 	keycloakURL string,
 	keycloakRealm string,
@@ -69,6 +70,10 @@ func NewRouter(
 		o.POST("/:id/unaccept", ownerOnly, orders.Unaccept)
 		o.POST("/:id/stop", ownerOnly, orders.StopProgress)
 		o.POST("/:id/unfinish", ownerOnly, orders.Unfinish)
+
+		push := v1.Group("/push")
+		push.POST("/subscribe", pushHandler.Subscribe)
+		push.DELETE("/subscribe", pushHandler.Unsubscribe)
 	}
 
 	return r
