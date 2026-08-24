@@ -57,6 +57,7 @@ func newTestDB(t *testing.T) *gorm.DB {
 		&models.Product{},
 		&models.Order{},
 		&models.OrderItem{},
+		&models.PushSubscription{},
 	)
 	require.NoError(t, err)
 

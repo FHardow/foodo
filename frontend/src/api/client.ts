@@ -16,5 +16,8 @@ export async function apiFetch<T = unknown>(path: string, options?: RequestInit)
   if (!res.ok) {
     throw new Error(`${res.status} ${res.statusText}`)
   }
+  if (res.status === 204 || res.headers.get('content-length') === '0') {
+    return undefined as T
+  }
   return res.json() as Promise<T>
 }

@@ -53,7 +53,7 @@ test.describe('Admin Products — create', () => {
           json: { id: 'prod-new', name: 'Rye Bread', description: '', unit: 'loaf', available: false },
         })
       } else {
-        route.continue()
+        route.fallback()
       }
     })
 

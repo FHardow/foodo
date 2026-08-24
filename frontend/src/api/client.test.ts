@@ -29,4 +29,11 @@ describe('apiFetch', () => {
     )
     await expect(apiFetch('/test')).rejects.toThrow('404')
   })
+
+  it('resolves without throwing on 204 No Content', async () => {
+    vi.mocked(fetch).mockResolvedValue(
+      new Response(null, { status: 204 })
+    )
+    await expect(apiFetch('/test')).resolves.toBeUndefined()
+  })
 })

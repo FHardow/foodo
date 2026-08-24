@@ -10,6 +10,7 @@ services:
         VITE_KEYCLOAK_URL: ${VITE_KEYCLOAK_URL}
         VITE_KEYCLOAK_REALM: ${KEYCLOAK_REALM:-foodo}
         VITE_KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID:-foodo-frontend}
+        VITE_VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
     labels:
       - traefik.enable=true
       - traefik.http.routers.frontend.rule=Host(`foodo.${DOMAIN}`)
@@ -36,6 +37,10 @@ services:
       KEYCLOAK_REALM: ${KEYCLOAK_REALM:-foodo}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
       TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
+      VAPID_SUBJECT: ${VAPID_SUBJECT:-}
+      PUSH_ENCRYPTION_KEY: ${PUSH_ENCRYPTION_KEY}
     labels:
       - traefik.enable=true
       - traefik.http.routers.backend.rule=Host(`foodo.${DOMAIN}`) && PathPrefix(`/api`)
