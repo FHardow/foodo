@@ -23,7 +23,9 @@ const queryClient = new QueryClient({
 
 export default function App() {
   useEffect(() => {
-    initPush().catch(() => {})
+    initPush().catch((err) => {
+      console.error('push init failed', err)
+    })
   }, [])
 
   return (

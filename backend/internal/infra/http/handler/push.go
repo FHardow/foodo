@@ -46,11 +46,11 @@ func (h *PushHandler) Subscribe(c *gin.Context) {
 		return
 	}
 	if _, err := h.svc.Subscribe(c.Request.Context(), userID, req.Endpoint, req.Keys.P256dh, req.Keys.Auth); err != nil {
-		slog.Error("push: subscribe failed", "err", err, "user_id", userID)
+		slog.Error("push: subscribe failed", "err", err, "user_id", userID, "user_agent", c.Request.UserAgent())
 		respond.Error(c, err)
 		return
 	}
-	slog.Info("push: subscribed", "user_id", userID)
+	slog.Info("push: subscribed", "user_id", userID, "user_agent", c.Request.UserAgent())
 	c.Status(http.StatusNoContent)
 }
 
