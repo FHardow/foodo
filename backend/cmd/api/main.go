@@ -68,6 +68,12 @@ func main() {
 	if cfg.VAPIDPublicKey != "" && cfg.VAPIDPrivateKey != "" && cfg.VAPIDSubject != "" {
 		orderSvc.WithCustomerNotifier(webpush.NewNotifier(pushRepo, cfg.VAPIDPublicKey, cfg.VAPIDPrivateKey, cfg.VAPIDSubject))
 		log.Info("push order notifications enabled")
+	} else {
+		log.Warn("push order notifications disabled: missing VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, or VAPID_SUBJECT",
+			"vapid_public_key_set", cfg.VAPIDPublicKey != "",
+			"vapid_private_key_set", cfg.VAPIDPrivateKey != "",
+			"vapid_subject_set", cfg.VAPIDSubject != "",
+		)
 	}
 
 	// HTTP handlers

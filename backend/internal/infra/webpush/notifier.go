@@ -59,11 +59,16 @@ func (n *Notifier) notify(o *order.Order, title, body string) {
 		slog.Error("push: failed to list subscriptions", "err", err, "order_id", o.ID())
 		return
 	}
+	slog.Info("push: notifying", "order_id", o.ID(), "title", title, "subscription_count", len(subs))
+	if len(subs) == 0 {
+		return
+	}
 	msg, err := json.Marshal(notificationPayload{Title: title, Body: body, URL: "/orders/" + o.ID().String()})
 	if err != nil {
 		slog.Error("push: failed to marshal payload", "err", err)
 		return
 	}
+	sent := 0
 	for _, s := range subs {
 		resp, err := n.send(msg, &sherwebpush.Subscription{
 			Endpoint: s.Endpoint(),
@@ -88,6 +93,14 @@ func (n *Notifier) notify(o *order.Order, title, body string) {
 			if delErr := n.subs.DeleteByEndpoint(ctx, s.Endpoint()); delErr != nil {
 				slog.Error("push: failed to delete stale subscription", "err", delErr)
 			}
+			slog.Warn("push: subscription gone, removed", "order_id", o.ID(), "subscription_id", s.ID(), "status", resp.StatusCode)
+			continue
 		}
+		if resp.StatusCode >= 300 {
+			slog.Warn("push: send rejected", "order_id", o.ID(), "subscription_id", s.ID(), "status", resp.StatusCode)
+			continue
+		}
+		sent++
 	}
+	slog.Info("push: done", "order_id", o.ID(), "title", title, "sent", sent, "total", len(subs))
 }

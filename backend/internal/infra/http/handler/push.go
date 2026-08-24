@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"log/slog"
 	"net/http"
 
 	"github.com/fhardow/foodo/internal/domain/push"
@@ -45,9 +46,11 @@ func (h *PushHandler) Subscribe(c *gin.Context) {
 		return
 	}
 	if _, err := h.svc.Subscribe(c.Request.Context(), userID, req.Endpoint, req.Keys.P256dh, req.Keys.Auth); err != nil {
+		slog.Error("push: subscribe failed", "err", err, "user_id", userID)
 		respond.Error(c, err)
 		return
 	}
+	slog.Info("push: subscribed", "user_id", userID)
 	c.Status(http.StatusNoContent)
 }
 
@@ -66,8 +69,10 @@ func (h *PushHandler) Unsubscribe(c *gin.Context) {
 	}
 	isOwner := middleware.HasRole(c, "owner")
 	if err := h.svc.Unsubscribe(c.Request.Context(), userID, isOwner, req.Endpoint); err != nil {
+		slog.Error("push: unsubscribe failed", "err", err, "user_id", userID)
 		respond.Error(c, err)
 		return
 	}
+	slog.Info("push: unsubscribed", "user_id", userID)
 	c.Status(http.StatusNoContent)
 }
