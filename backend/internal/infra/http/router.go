@@ -70,6 +70,7 @@ func NewRouter(
 		o.POST("/:id/unaccept", ownerOnly, orders.Unaccept)
 		o.POST("/:id/stop", ownerOnly, orders.StopProgress)
 		o.POST("/:id/unfinish", ownerOnly, orders.Unfinish)
+		o.POST("/archive-finished", ownerOnly, orders.ArchiveAllFinished)
 
 		push := v1.Group("/push")
 		push.POST("/subscribe", pushHandler.Subscribe)

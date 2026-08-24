@@ -203,3 +203,25 @@ func (s *Service) Unfinish(ctx context.Context, id ID) (*Order, error) {
 	}
 	return o, nil
 }
+
+// ArchiveAllFinished archives every order currently in the finished state.
+func (s *Service) ArchiveAllFinished(ctx context.Context) (int, error) {
+	orders, err := s.repo.List(ctx)
+	if err != nil {
+		return 0, err
+	}
+	count := 0
+	for _, o := range orders {
+		if o.Status() != StatusFinished {
+			continue
+		}
+		if err := o.Archive(); err != nil {
+			return count, err
+		}
+		if err := s.repo.Save(ctx, o); err != nil {
+			return count, err
+		}
+		count++
+	}
+	return count, nil
+}

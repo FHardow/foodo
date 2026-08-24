@@ -18,6 +18,7 @@ const (
 	StatusAccepted Status = "accepted"
 	StatusOngoing  Status = "ongoing"
 	StatusFinished Status = "finished"
+	StatusArchived Status = "archived"
 )
 
 type Item struct {
@@ -193,6 +194,16 @@ func (o *Order) Unfinish() error {
 		return domerrors.BadRequest("only finished orders can be unfinished")
 	}
 	o.status = StatusOngoing
+	o.updatedAt = time.Now().UTC()
+	return nil
+}
+
+// Archive transitions a finished order to archived.
+func (o *Order) Archive() error {
+	if o.status != StatusFinished {
+		return domerrors.BadRequest("only finished orders can be archived")
+	}
+	o.status = StatusArchived
 	o.updatedAt = time.Now().UTC()
 	return nil
 }

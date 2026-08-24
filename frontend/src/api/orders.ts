@@ -48,3 +48,6 @@ export const stopOrder = (orderId: string) =>
 
 export const unfinishOrder = (orderId: string) =>
   apiFetch<Order>(`/api/v1/orders/${orderId}/unfinish`, { method: 'POST' })
+
+export const archiveFinishedOrders = () =>
+  apiFetch<{ archived_count: number }>('/api/v1/orders/archive-finished', { method: 'POST' })

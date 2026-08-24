@@ -262,3 +262,12 @@ func (h *OrderHandler) Unfinish(c *gin.Context) {
 	}
 	respond.JSON(c, http.StatusOK, toOrderResponse(o))
 }
+
+func (h *OrderHandler) ArchiveAllFinished(c *gin.Context) {
+	count, err := h.svc.ArchiveAllFinished(c.Request.Context())
+	if err != nil {
+		respond.Error(c, err)
+		return
+	}
+	respond.JSON(c, http.StatusOK, gin.H{"archived_count": count})
+}
