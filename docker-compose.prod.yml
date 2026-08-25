@@ -61,7 +61,25 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     restart: unless-stopped
+
+  # ── Migrations ─────────────────────────────────────────────────────────────
+  migrate:
+    image: migrate/migrate:v4.18.1
+    volumes:
+      - ./backend/migrations:/migrations
+    command:
+      - -path=/migrations
+      - -database=postgres://${DB_USER:-foodo}:${DB_PASSWORD}@postgres:5432/${DB_NAME:-foodo}?sslmode=disable
+      - up
+    networks:
+      - internal
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
 
   # ── PostgreSQL ─────────────────────────────────────────────────────────────
   postgres:
