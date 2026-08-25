@@ -92,7 +92,7 @@ export default function Basket() {
                       −
                     </Button>
                     <span className="text-center text-foreground min-w-[3rem]">
-                      {unit ? `${unit} ${item.quantity}` : item.quantity}
+                      {item.quantity}
                     </span>
                     <Button
                       variant="outline"

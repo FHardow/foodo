@@ -17,10 +17,11 @@ import { CSS } from '@dnd-kit/utilities'
 import { useState, useEffect } from 'react'
 import type { CSSProperties } from 'react'
 import keycloak from '../../auth/keycloak'
-import { getAllOrders, acceptOrder, startOrder, finishOrder, unacceptOrder, stopOrder, unfinishOrder } from '../../api/orders'
+import { getAllOrders, acceptOrder, startOrder, finishOrder, unacceptOrder, stopOrder, unfinishOrder, archiveFinishedOrders } from '../../api/orders'
 import type { Order } from '../../types'
 import { Card } from '../../components/ui/card'
 import { Badge } from '../../components/ui/badge'
+import { Button } from '../../components/ui/button'
 
 type KanbanStatus = 'created' | 'accepted' | 'ongoing' | 'finished'
 
@@ -90,11 +91,15 @@ function KanbanColumn({
   label,
   orders,
   activeId,
+  onArchiveFinished,
+  archiving,
 }: {
   status: KanbanStatus
   label: string
   orders: Order[]
   activeId: string | null
+  onArchiveFinished?: () => void
+  archiving?: boolean
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: status })
 
@@ -113,6 +118,17 @@ function KanbanColumn({
           {orders.length}
         </Badge>
       </div>
+      {status === 'finished' && (
+        <Button
+          variant="outline"
+          size="sm"
+          className="mb-3 text-xs h-7"
+          disabled={archiving || orders.length === 0}
+          onClick={onArchiveFinished}
+        >
+          {archiving ? 'Archiving…' : 'Archive All'}
+        </Button>
+      )}
       <div className="flex flex-col gap-2 flex-1">
         {orders.map((order) => (
           <OrderCard key={order.id} order={order} isDragging={order.id === activeId} />
@@ -148,6 +164,14 @@ export default function AdminOrders() {
   const unaccept = useMutation({ mutationFn: unacceptOrder, onSuccess: invalidate, onError: () => toast.error('Failed to move order back') })
   const stop     = useMutation({ mutationFn: stopOrder,     onSuccess: invalidate, onError: () => toast.error('Failed to move order back') })
   const unfinish = useMutation({ mutationFn: unfinishOrder, onSuccess: invalidate, onError: () => toast.error('Failed to move order back') })
+  const archive  = useMutation({
+    mutationFn: archiveFinishedOrders,
+    onSuccess: ({ archived_count }) => {
+      invalidate()
+      toast.success(`Archived ${archived_count} order${archived_count === 1 ? '' : 's'}`)
+    },
+    onError: () => toast.error('Failed to archive orders'),
+  })
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -162,7 +186,7 @@ export default function AdminOrders() {
 
   // Only show non-pending orders in the kanban
   const kanbanOrders = allOrders.filter(
-    (o): o is Order & { status: KanbanStatus } => o.status !== 'pending'
+    (o): o is Order & { status: KanbanStatus } => STATUS_ORDER.includes(o.status as KanbanStatus)
   )
 
   const columnOrders = (status: KanbanStatus) =>
@@ -227,6 +251,8 @@ export default function AdminOrders() {
               label={label}
               orders={columnOrders(status)}
               activeId={activeId}
+              onArchiveFinished={() => archive.mutate()}
+              archiving={archive.isPending}
             />
           ))}
         </div>

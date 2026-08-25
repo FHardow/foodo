@@ -21,7 +21,7 @@ export interface Order {
   id: UUID
   user_id: string
   user_name?: string
-  status: 'pending' | 'created' | 'accepted' | 'ongoing' | 'finished'
+  status: 'pending' | 'created' | 'accepted' | 'ongoing' | 'finished' | 'archived'
   items: OrderItem[]
   created_at: string
 }
