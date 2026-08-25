@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { getOrder } from '../api/orders'
-import { getProducts } from '../api/products'
 import { useBasket } from '../hooks/useBasket'
 import { useBasketStore } from '../store/basket'
 import { Card } from '../components/ui/card'
@@ -21,11 +20,6 @@ export default function Basket() {
     enabled: !!basketOrderId,
   })
 
-  const { data: products } = useQuery({
-    queryKey: ['products'],
-    queryFn: getProducts,
-  })
-
   if (!basketOrderId || (!isLoading && !order)) {
     return (
       <div className="text-center py-16">
@@ -40,9 +34,6 @@ export default function Basket() {
   if (isLoading) {
     return <Card className="h-48 animate-pulse" />
   }
-
-  // productMap used as fallback for items that may lack unit (e.g. older orders)
-  const productMap = new Map(products?.map((p) => [p.id, p]) ?? [])
 
   async function handleConfirm() {
     setConfirmError(null)
@@ -71,7 +62,6 @@ export default function Basket() {
       ) : (
         <ul className="space-y-4 mb-8">
           {order?.items.map((item) => {
-            const unit = item.unit || productMap.get(item.product_id)?.unit
             return (
               <li key={item.product_id}>
                 <Card className="flex items-center gap-4 p-4">
