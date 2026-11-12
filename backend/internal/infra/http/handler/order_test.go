@@ -11,6 +11,7 @@ import (
 
 	"github.com/fhardow/foodo/internal/domain/order"
 	"github.com/fhardow/foodo/internal/domain/product"
+	"github.com/fhardow/foodo/internal/domain/user"
 	"github.com/fhardow/foodo/internal/infra/http/handler"
 	"github.com/fhardow/foodo/internal/infra/http/middleware"
 	"github.com/fhardow/foodo/internal/testutil/mock"
@@ -20,8 +21,21 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// setupOrderRouter wires the order handler with the given repos. If
+// authUserID is a valid UUID, a matching user profile is seeded, since the
+// service refuses to create orders for unknown users.
 func setupOrderRouter(orderRepo *mock.OrderRepo, productRepo *mock.ProductRepo, authUserID string) *gin.Engine {
-	svc := order.NewService(orderRepo, productRepo)
+	userRepo := mock.NewUserRepo()
+	if id, err := uuid.Parse(authUserID); err == nil {
+		u, err := user.New(id, "Test User", "test@example.com", "")
+		if err != nil {
+			panic(err)
+		}
+		if err := userRepo.Save(context.Background(), u); err != nil {
+			panic(err)
+		}
+	}
+	svc := order.NewService(orderRepo, productRepo, userRepo)
 	h := handler.NewOrderHandler(svc)
 
 	r := gin.New()
@@ -35,8 +49,12 @@ func setupOrderRouter(orderRepo *mock.OrderRepo, productRepo *mock.ProductRepo, 
 	r.POST("/orders/:id/items", h.AddItem)
 	r.DELETE("/orders/:id/items/:productID", h.RemoveItem)
 	r.POST("/orders/:id/confirm", h.Confirm)
-	r.POST("/orders/:id/fulfill", h.Fulfill)
-	r.POST("/orders/:id/cancel", h.Cancel)
+	r.POST("/orders/:id/accept", h.Accept)
+	r.POST("/orders/:id/start", h.StartProgress)
+	r.POST("/orders/:id/finish", h.Finish)
+	r.POST("/orders/:id/unaccept", h.Unaccept)
+	r.POST("/orders/:id/stop", h.StopProgress)
+	r.POST("/orders/:id/unfinish", h.Unfinish)
 
 	return r
 }
@@ -84,6 +102,22 @@ func TestOrderHandler_Create_Success(t *testing.T) {
 	assert.Equal(t, userID, resp["user_id"])
 	assert.Equal(t, "pending", resp["status"])
 	assert.Equal(t, float64(0), resp["total_cents"])
+}
+
+func TestOrderHandler_Create_UnknownUser(t *testing.T) {
+	// Valid UUID but no user profile: the service rejects it.
+	oRepo := mock.NewOrderRepo()
+	svc := order.NewService(oRepo, mock.NewProductRepo(), mock.NewUserRepo())
+	h := handler.NewOrderHandler(svc)
+	r := gin.New()
+	r.Use(func(c *gin.Context) {
+		c.Set(middleware.UserIDKey, uuid.New().String())
+		c.Next()
+	})
+	r.POST("/orders", h.Create)
+
+	w := postEmpty(r, "/orders")
+	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
 
 func TestOrderHandler_Create_MissingUserID(t *testing.T) {
@@ -353,7 +387,7 @@ func TestOrderHandler_Confirm_Success(t *testing.T) {
 
 	var resp map[string]any
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
-	assert.Equal(t, "confirmed", resp["status"])
+	assert.Equal(t, "created", resp["status"])
 }
 
 func TestOrderHandler_Confirm_EmptyOrder(t *testing.T) {
@@ -382,114 +416,87 @@ func TestOrderHandler_Confirm_InvalidUUID(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// Fulfill
+// Owner lifecycle: created -> accepted -> ongoing -> finished (and back)
 // ---------------------------------------------------------------------------
 
-func TestOrderHandler_Fulfill_Success(t *testing.T) {
-	oRepo := mock.NewOrderRepo()
-	pRepo := mock.NewProductRepo()
-	router := setupOrderRouter(oRepo, pRepo, uuid.New().String())
-
+// confirmedOrder creates an order with one item, confirms it and returns its ID.
+func confirmedOrder(t *testing.T, router *gin.Engine, pRepo *mock.ProductRepo) string {
+	t.Helper()
 	created := createOrderViaHTTP(t, router)
+	id := created["id"].(string)
 	productID := seedProductInRepo(t, pRepo)
-	postJSON(router, "/orders/"+created["id"].(string)+"/items", map[string]any{
-		"product_id": productID,
+	w := postJSON(router, "/orders/"+id+"/items", map[string]any{"product_id": productID, "quantity": 1})
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+	w = postEmpty(router, "/orders/"+id+"/confirm")
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+	return id
+}
+
+func transition(t *testing.T, router *gin.Engine, id, action string, wantCode int, wantStatus string) {
+	t.Helper()
+	w := postEmpty(router, "/orders/"+id+"/"+action)
+	require.Equal(t, wantCode, w.Code, "%s: %s", action, w.Body.String())
+	if wantStatus != "" {
+		var resp map[string]any
+		require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+		assert.Equal(t, wantStatus, resp["status"], action)
+	}
+}
+
+func TestOrderHandler_Lifecycle_Forward(t *testing.T) {
+	pRepo := mock.NewProductRepo()
+	router := setupOrderRouter(mock.NewOrderRepo(), pRepo, uuid.New().String())
+	id := confirmedOrder(t, router, pRepo)
+
+	transition(t, router, id, "accept", http.StatusOK, "accepted")
+	transition(t, router, id, "start", http.StatusOK, "ongoing")
+	transition(t, router, id, "finish", http.StatusOK, "finished")
+}
+
+func TestOrderHandler_Lifecycle_Backward(t *testing.T) {
+	pRepo := mock.NewProductRepo()
+	router := setupOrderRouter(mock.NewOrderRepo(), pRepo, uuid.New().String())
+	id := confirmedOrder(t, router, pRepo)
+	transition(t, router, id, "accept", http.StatusOK, "accepted")
+	transition(t, router, id, "start", http.StatusOK, "ongoing")
+	transition(t, router, id, "finish", http.StatusOK, "finished")
+
+	transition(t, router, id, "unfinish", http.StatusOK, "ongoing")
+	transition(t, router, id, "stop", http.StatusOK, "accepted")
+	transition(t, router, id, "unaccept", http.StatusOK, "created")
+}
+
+func TestOrderHandler_Lifecycle_InvalidTransitions(t *testing.T) {
+	pRepo := mock.NewProductRepo()
+	router := setupOrderRouter(mock.NewOrderRepo(), pRepo, uuid.New().String())
+
+	// A pending (unconfirmed) order can't be accepted.
+	pending := createOrderViaHTTP(t, router)["id"].(string)
+	transition(t, router, pending, "accept", http.StatusBadRequest, "")
+
+	// A created order can't skip ahead or go backwards.
+	id := confirmedOrder(t, router, pRepo)
+	for _, action := range []string{"start", "finish", "unaccept", "stop", "unfinish"} {
+		transition(t, router, id, action, http.StatusBadRequest, "")
+	}
+}
+
+func TestOrderHandler_Lifecycle_NotFoundAndInvalidUUID(t *testing.T) {
+	router := setupOrderRouter(mock.NewOrderRepo(), mock.NewProductRepo(), uuid.New().String())
+	for _, action := range []string{"accept", "start", "finish", "unaccept", "stop", "unfinish"} {
+		transition(t, router, uuid.New().String(), action, http.StatusNotFound, "")
+		transition(t, router, "bad-id", action, http.StatusBadRequest, "")
+	}
+}
+
+func TestOrderHandler_AddItem_AfterConfirmForbidden(t *testing.T) {
+	pRepo := mock.NewProductRepo()
+	router := setupOrderRouter(mock.NewOrderRepo(), pRepo, uuid.New().String())
+	id := confirmedOrder(t, router, pRepo)
+
+	w := postJSON(router, "/orders/"+id+"/items", map[string]any{
+		"product_id": seedProductInRepo(t, pRepo),
 		"quantity":   1,
 	})
-	postEmpty(router, "/orders/"+created["id"].(string)+"/confirm")
-
-	w := postEmpty(router, "/orders/"+created["id"].(string)+"/fulfill")
-	assert.Equal(t, http.StatusOK, w.Code)
-
-	var resp map[string]any
-	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
-	assert.Equal(t, "fulfilled", resp["status"])
-}
-
-func TestOrderHandler_Fulfill_NotConfirmed(t *testing.T) {
-	oRepo := mock.NewOrderRepo()
-	router := setupOrderRouter(oRepo, mock.NewProductRepo(), uuid.New().String())
-
-	created := createOrderViaHTTP(t, router)
-
-	w := postEmpty(router, "/orders/"+created["id"].(string)+"/fulfill")
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-}
-
-func TestOrderHandler_Fulfill_NotFound(t *testing.T) {
-	router := setupOrderRouter(mock.NewOrderRepo(), mock.NewProductRepo(), uuid.New().String())
-
-	w := postEmpty(router, "/orders/"+uuid.New().String()+"/fulfill")
-	assert.Equal(t, http.StatusNotFound, w.Code)
-}
-
-// ---------------------------------------------------------------------------
-// Cancel
-// ---------------------------------------------------------------------------
-
-func TestOrderHandler_Cancel_FromPending(t *testing.T) {
-	oRepo := mock.NewOrderRepo()
-	router := setupOrderRouter(oRepo, mock.NewProductRepo(), uuid.New().String())
-
-	created := createOrderViaHTTP(t, router)
-
-	w := postEmpty(router, "/orders/"+created["id"].(string)+"/cancel")
-	assert.Equal(t, http.StatusOK, w.Code)
-
-	var resp map[string]any
-	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
-	assert.Equal(t, "cancelled", resp["status"])
-}
-
-func TestOrderHandler_Cancel_FromConfirmed(t *testing.T) {
-	oRepo := mock.NewOrderRepo()
-	pRepo := mock.NewProductRepo()
-	router := setupOrderRouter(oRepo, pRepo, uuid.New().String())
-
-	created := createOrderViaHTTP(t, router)
-	productID := seedProductInRepo(t, pRepo)
-	postJSON(router, "/orders/"+created["id"].(string)+"/items", map[string]any{
-		"product_id": productID,
-		"quantity":   1,
-	})
-	postEmpty(router, "/orders/"+created["id"].(string)+"/confirm")
-
-	w := postEmpty(router, "/orders/"+created["id"].(string)+"/cancel")
-	assert.Equal(t, http.StatusOK, w.Code)
-
-	var resp map[string]any
-	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
-	assert.Equal(t, "cancelled", resp["status"])
-}
-
-func TestOrderHandler_Cancel_FromFulfilled(t *testing.T) {
-	oRepo := mock.NewOrderRepo()
-	pRepo := mock.NewProductRepo()
-	router := setupOrderRouter(oRepo, pRepo, uuid.New().String())
-
-	created := createOrderViaHTTP(t, router)
-	productID := seedProductInRepo(t, pRepo)
-	postJSON(router, "/orders/"+created["id"].(string)+"/items", map[string]any{
-		"product_id": productID,
-		"quantity":   1,
-	})
-	postEmpty(router, "/orders/"+created["id"].(string)+"/confirm")
-	postEmpty(router, "/orders/"+created["id"].(string)+"/fulfill")
-
-	w := postEmpty(router, "/orders/"+created["id"].(string)+"/cancel")
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-}
-
-func TestOrderHandler_Cancel_NotFound(t *testing.T) {
-	router := setupOrderRouter(mock.NewOrderRepo(), mock.NewProductRepo(), uuid.New().String())
-
-	w := postEmpty(router, "/orders/"+uuid.New().String()+"/cancel")
-	assert.Equal(t, http.StatusNotFound, w.Code)
-}
-
-func TestOrderHandler_Cancel_InvalidUUID(t *testing.T) {
-	router := setupOrderRouter(mock.NewOrderRepo(), mock.NewProductRepo(), uuid.New().String())
-
-	w := postEmpty(router, "/orders/bad-id/cancel")
-	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Equal(t, http.StatusForbidden, w.Code)
 }

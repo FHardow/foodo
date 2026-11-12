@@ -49,7 +49,7 @@ func TestOrderRepo_FindByID_ItemsPreloaded(t *testing.T) {
 
 	o, err := order.New(uuid.New())
 	require.NoError(t, err)
-	require.NoError(t, o.AddItem(product.ID(productID), "Sourdough", 3, 450))
+	require.NoError(t, o.AddItem(product.ID(productID), "Sourdough", "loaf", 3, 450))
 	require.NoError(t, repo.Save(ctx, o))
 
 	found, err := repo.FindByID(ctx, o.ID())
@@ -108,14 +108,14 @@ func TestOrderRepo_Save_UpdatesStatusAndItems(t *testing.T) {
 	productID := uuid.New()
 	o, err := order.New(uuid.New())
 	require.NoError(t, err)
-	require.NoError(t, o.AddItem(product.ID(productID), "Rye", 2, 300))
+	require.NoError(t, o.AddItem(product.ID(productID), "Rye", "loaf", 2, 300))
 	require.NoError(t, repo.Save(ctx, o))
 	require.NoError(t, o.Confirm())
 	require.NoError(t, repo.Save(ctx, o))
 
 	found, err := repo.FindByID(ctx, o.ID())
 	require.NoError(t, err)
-	assert.Equal(t, order.StatusConfirmed, found.Status())
+	assert.Equal(t, order.StatusCreated, found.Status())
 	require.Len(t, found.Items(), 1)
 	assert.Equal(t, 2, found.Items()[0].Quantity)
 }
@@ -142,7 +142,7 @@ func TestOrderRepo_Delete_CascadesItems(t *testing.T) {
 	productID := uuid.New()
 	o, err := order.New(uuid.New())
 	require.NoError(t, err)
-	require.NoError(t, o.AddItem(product.ID(productID), "Sourdough", 1, 450))
+	require.NoError(t, o.AddItem(product.ID(productID), "Sourdough", "loaf", 1, 450))
 	require.NoError(t, repo.Save(ctx, o))
 
 	require.NoError(t, repo.Delete(ctx, o.ID()))
