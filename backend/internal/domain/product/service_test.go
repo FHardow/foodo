@@ -25,7 +25,7 @@ func TestService_Create_Success(t *testing.T) {
 	repo := mock.NewProductRepo()
 	svc := newProductService(repo)
 
-	p, err := svc.Create(context.Background(), "Sourdough", "classic", 450, "loaf", true)
+	p, err := svc.Create(context.Background(), "Sourdough", "classic", 450, "loaf", true, nil)
 	require.NoError(t, err)
 	require.NotNil(t, p)
 	assert.Equal(t, "Sourdough", p.Name())
@@ -41,7 +41,7 @@ func TestService_Create_ValidationError(t *testing.T) {
 	repo := mock.NewProductRepo()
 	svc := newProductService(repo)
 
-	_, err := svc.Create(context.Background(), "", "desc", 100, "loaf", true)
+	_, err := svc.Create(context.Background(), "", "desc", 100, "loaf", true, nil)
 	require.Error(t, err)
 	assert.True(t, domerrors.Is(err, domerrors.ErrBadRequest))
 }
@@ -51,7 +51,7 @@ func TestService_Create_SaveError(t *testing.T) {
 	repo.ErrSave = errors.New("disk full")
 	svc := newProductService(repo)
 
-	_, err := svc.Create(context.Background(), "Bread", "", 100, "loaf", true)
+	_, err := svc.Create(context.Background(), "Bread", "", 100, "loaf", true, nil)
 	require.Error(t, err)
 	assert.Equal(t, "disk full", err.Error())
 }
@@ -64,7 +64,7 @@ func TestService_GetByID_Success(t *testing.T) {
 	repo := mock.NewProductRepo()
 	svc := newProductService(repo)
 
-	p, _ := svc.Create(context.Background(), "Rye", "", 300, "loaf", true)
+	p, _ := svc.Create(context.Background(), "Rye", "", 300, "loaf", true, nil)
 
 	found, err := svc.GetByID(context.Background(), p.ID())
 	require.NoError(t, err)
@@ -88,8 +88,8 @@ func TestService_List_AllProducts(t *testing.T) {
 	repo := mock.NewProductRepo()
 	svc := newProductService(repo)
 
-	svc.Create(context.Background(), "A", "", 100, "loaf", true)
-	svc.Create(context.Background(), "B", "", 200, "kg", true)
+	svc.Create(context.Background(), "A", "", 100, "loaf", true, nil)
+	svc.Create(context.Background(), "B", "", 200, "kg", true, nil)
 
 	products, err := svc.List(context.Background(), false)
 	require.NoError(t, err)
@@ -100,8 +100,8 @@ func TestService_List_AvailableOnly(t *testing.T) {
 	repo := mock.NewProductRepo()
 	svc := newProductService(repo)
 
-	p1, _ := svc.Create(context.Background(), "Available", "", 100, "loaf", true)
-	p2, _ := svc.Create(context.Background(), "Unavailable", "", 200, "loaf", true)
+	p1, _ := svc.Create(context.Background(), "Available", "", 100, "loaf", true, nil)
+	p2, _ := svc.Create(context.Background(), "Unavailable", "", 200, "loaf", true, nil)
 	svc.SetAvailable(context.Background(), p2.ID(), false)
 
 	products, err := svc.List(context.Background(), true)
@@ -127,9 +127,9 @@ func TestService_Update_Success(t *testing.T) {
 	repo := mock.NewProductRepo()
 	svc := newProductService(repo)
 
-	p, _ := svc.Create(context.Background(), "Sourdough", "old", 450, "loaf", true)
+	p, _ := svc.Create(context.Background(), "Sourdough", "old", 450, "loaf", true, nil)
 
-	updated, err := svc.Update(context.Background(), p.ID(), "Whole Wheat", "new", 500, "kg")
+	updated, err := svc.Update(context.Background(), p.ID(), "Whole Wheat", "new", 500, "kg", nil)
 	require.NoError(t, err)
 	assert.Equal(t, "Whole Wheat", updated.Name())
 	assert.Equal(t, int64(500), updated.PriceCents())
@@ -143,7 +143,7 @@ func TestService_Update_NotFound(t *testing.T) {
 	repo := mock.NewProductRepo()
 	svc := newProductService(repo)
 
-	_, err := svc.Update(context.Background(), uuid.New(), "X", "", 100, "loaf")
+	_, err := svc.Update(context.Background(), uuid.New(), "X", "", 100, "loaf", nil)
 	require.Error(t, err)
 	assert.True(t, domerrors.Is(err, domerrors.ErrNotFound))
 }
@@ -152,9 +152,9 @@ func TestService_Update_ValidationError(t *testing.T) {
 	repo := mock.NewProductRepo()
 	svc := newProductService(repo)
 
-	p, _ := svc.Create(context.Background(), "Sourdough", "", 450, "loaf", true)
+	p, _ := svc.Create(context.Background(), "Sourdough", "", 450, "loaf", true, nil)
 
-	_, err := svc.Update(context.Background(), p.ID(), "", "", -1, "")
+	_, err := svc.Update(context.Background(), p.ID(), "", "", -1, "", nil)
 	require.Error(t, err)
 	assert.True(t, domerrors.Is(err, domerrors.ErrBadRequest))
 }
@@ -167,7 +167,7 @@ func TestService_SetAvailable_ToFalse(t *testing.T) {
 	repo := mock.NewProductRepo()
 	svc := newProductService(repo)
 
-	p, _ := svc.Create(context.Background(), "Sourdough", "", 450, "loaf", true)
+	p, _ := svc.Create(context.Background(), "Sourdough", "", 450, "loaf", true, nil)
 
 	updated, err := svc.SetAvailable(context.Background(), p.ID(), false)
 	require.NoError(t, err)
@@ -178,7 +178,7 @@ func TestService_SetAvailable_ToTrue(t *testing.T) {
 	repo := mock.NewProductRepo()
 	svc := newProductService(repo)
 
-	p, _ := svc.Create(context.Background(), "Sourdough", "", 450, "loaf", true)
+	p, _ := svc.Create(context.Background(), "Sourdough", "", 450, "loaf", true, nil)
 	svc.SetAvailable(context.Background(), p.ID(), false)
 
 	updated, err := svc.SetAvailable(context.Background(), p.ID(), true)
@@ -203,7 +203,7 @@ func TestService_Delete_Success(t *testing.T) {
 	repo := mock.NewProductRepo()
 	svc := newProductService(repo)
 
-	p, _ := svc.Create(context.Background(), "Sourdough", "", 450, "loaf", true)
+	p, _ := svc.Create(context.Background(), "Sourdough", "", 450, "loaf", true, nil)
 
 	err := svc.Delete(context.Background(), p.ID())
 	require.NoError(t, err)
@@ -232,10 +232,52 @@ func TestService_SetImageURL(t *testing.T) {
 	svc := newProductService(repo)
 	ctx := context.Background()
 
-	p, err := svc.Create(ctx, "Rye", "", 300, "loaf", true)
+	p, err := svc.Create(ctx, "Rye", "", 300, "loaf", true, nil)
 	require.NoError(t, err)
 
 	updated, err := svc.SetImageURL(ctx, p.ID(), "/uploads/"+p.ID().String()+".jpg")
 	require.NoError(t, err)
 	assert.Equal(t, "/uploads/"+p.ID().String()+".jpg", updated.ImageURL())
+}
+
+// ---------------------------------------------------------------------------
+// Categories
+// ---------------------------------------------------------------------------
+
+func TestService_Create_WithCategories(t *testing.T) {
+	svc := newProductService(mock.NewProductRepo())
+	p, err := svc.Create(context.Background(), "Rye", "", 300, "loaf", true, []string{"Bakery", "bakery", "Grains"})
+	require.NoError(t, err)
+	assert.Equal(t, []string{"Bakery", "Grains"}, p.Categories())
+}
+
+func TestService_Create_InvalidCategories(t *testing.T) {
+	svc := newProductService(mock.NewProductRepo())
+	names := make([]string, product.MaxCategories+1)
+	for i := range names {
+		names[i] = uuid.NewString()
+	}
+	_, err := svc.Create(context.Background(), "Rye", "", 300, "loaf", true, names)
+	require.Error(t, err)
+	assert.True(t, domerrors.Is(err, domerrors.ErrBadRequest))
+}
+
+func TestService_Update_NilCategoriesKeepsExisting(t *testing.T) {
+	svc := newProductService(mock.NewProductRepo())
+	ctx := context.Background()
+	p, _ := svc.Create(ctx, "Rye", "", 300, "loaf", true, []string{"Bakery"})
+
+	updated, err := svc.Update(ctx, p.ID(), "Rye", "", 300, "loaf", nil)
+	require.NoError(t, err)
+	assert.Equal(t, []string{"Bakery"}, updated.Categories())
+}
+
+func TestService_Update_ReplacesCategories(t *testing.T) {
+	svc := newProductService(mock.NewProductRepo())
+	ctx := context.Background()
+	p, _ := svc.Create(ctx, "Rye", "", 300, "loaf", true, []string{"Bakery"})
+
+	updated, err := svc.Update(ctx, p.ID(), "Rye", "", 300, "loaf", []string{})
+	require.NoError(t, err)
+	assert.Empty(t, updated.Categories())
 }

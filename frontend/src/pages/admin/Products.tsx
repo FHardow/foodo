@@ -12,11 +12,14 @@ import {
   uploadImage,
 } from '../../api/products'
 import type { ProductInput } from '../../api/products'
-import type { Product } from '../../types'
+import { getCategories, deleteCategory } from '../../api/categories'
+import type { Category, Product } from '../../types'
+import CategoryInput from '../../components/CategoryInput'
+import CategoryPill from '../../components/CategoryPill'
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8080'
 
-const emptyForm: ProductInput = { name: '', description: '', unit: '', available: false }
+const emptyForm: ProductInput = { name: '', description: '', unit: '', available: false, categories: [] }
 
 export default function AdminProducts() {
   const navigate = useNavigate()
@@ -27,6 +30,11 @@ export default function AdminProducts() {
     queryFn: getProducts,
   })
 
+  const { data: categories = [] } = useQuery({
+    queryKey: ['categories'],
+    queryFn: getCategories,
+  })
+
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<Product | null>(null)
   const [form, setForm] = useState<ProductInput>(emptyForm)
@@ -34,7 +42,25 @@ export default function AdminProducts() {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
-  const invalidate = () => queryClient.invalidateQueries({ queryKey: ['products'] })
+  const invalidate = () => {
+    queryClient.invalidateQueries({ queryKey: ['products'] })
+    // Saving a product may have created new categories.
+    queryClient.invalidateQueries({ queryKey: ['categories'] })
+  }
+
+  const deleteCategoryMutation = useMutation({
+    mutationFn: (c: Category) => deleteCategory(c.id),
+    onSuccess: (_, c) => {
+      // Also drop it from the form being edited so saving doesn't recreate it.
+      setForm((f) => ({
+        ...f,
+        categories: f.categories.filter((n) => n.toLowerCase() !== c.name.toLowerCase()),
+      }))
+      invalidate()
+      toast.success(`Category "${c.name}" deleted`)
+    },
+    onError: () => toast.error('Failed to delete category'),
+  })
 
   const availabilityMutation = useMutation({
     mutationFn: ({ id, available }: { id: string; available: boolean }) =>
@@ -67,7 +93,13 @@ export default function AdminProducts() {
 
   const openEdit = (p: Product) => {
     setEditing(p)
-    setForm({ name: p.name, description: p.description, unit: p.unit, available: p.available })
+    setForm({
+      name: p.name,
+      description: p.description,
+      unit: p.unit,
+      available: p.available,
+      categories: p.categories ?? [],
+    })
     setImageFile(null)
     setModalOpen(true)
   }
@@ -126,6 +158,7 @@ export default function AdminProducts() {
                 <th className="px-4 py-3 w-12"></th>
                 <th className="px-4 py-3">Name</th>
                 <th className="px-4 py-3 hidden sm:table-cell">Unit</th>
+                <th className="px-4 py-3 hidden lg:table-cell">Categories</th>
                 <th className="px-4 py-3 hidden md:table-cell">Description</th>
                 <th className="px-4 py-3">Available</th>
                 <th className="px-4 py-3"></th>
@@ -149,6 +182,13 @@ export default function AdminProducts() {
                   </td>
                   <td className="px-4 py-3 font-medium text-[#3d2b1a]">{p.name}</td>
                   <td className="px-4 py-3 hidden sm:table-cell text-[#8a6a50]">{p.unit}</td>
+                  <td className="px-4 py-3 hidden lg:table-cell">
+                    <div className="flex flex-wrap gap-1">
+                      {(p.categories ?? []).map((c) => (
+                        <CategoryPill key={c} category={c} />
+                      ))}
+                    </div>
+                  </td>
                   <td className="px-4 py-3 hidden md:table-cell text-[#8a6a50] max-w-xs truncate">
                     {p.description}
                   </td>
@@ -257,6 +297,24 @@ export default function AdminProducts() {
                   onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
                   className="w-full border border-[#e8ddd0] rounded px-3 py-2 text-sm focus:outline-none focus:border-[#5c3d1e] resize-none"
                 />
+              </div>
+              <div>
+                <label htmlFor="categories" className="block text-xs font-medium text-[#8a6a50] mb-1">
+                  Categories
+                </label>
+                <CategoryInput
+                  id="categories"
+                  value={form.categories}
+                  onChange={(categories) => setForm((f) => ({ ...f, categories }))}
+                  categories={categories}
+                  onDeleteCategory={(c) => deleteCategoryMutation.mutateAsync(c).then(
+                    () => undefined,
+                    () => undefined, // error already toasted by the mutation
+                  )}
+                />
+                <p className="text-[11px] text-[#a88a6e] mt-1">
+                  Enter, Tab or comma to add. Backspace twice removes the last one.
+                </p>
               </div>
               <div className="flex items-center gap-2">
                 <input

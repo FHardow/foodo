@@ -15,6 +15,7 @@ export interface ProductInput {
   description: string
   unit: string
   available: boolean
+  categories: string[]
   price_cents?: number
 }
 

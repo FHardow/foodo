@@ -32,6 +32,7 @@ type productResponse struct {
 	Unit        string    `json:"unit"`
 	Available   bool      `json:"available"`
 	ImageURL    string    `json:"image_url,omitempty"`
+	Categories  []string  `json:"categories"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 }
@@ -45,6 +46,7 @@ func toProductResponse(p *product.Product) productResponse {
 		Unit:        p.Unit(),
 		Available:   p.Available(),
 		ImageURL:    p.ImageURL(),
+		Categories:  nonNil(p.Categories()),
 		CreatedAt:   p.CreatedAt(),
 		UpdatedAt:   p.UpdatedAt(),
 	}
@@ -52,17 +54,18 @@ func toProductResponse(p *product.Product) productResponse {
 
 func (h *ProductHandler) Create(c *gin.Context) {
 	var req struct {
-		Name        string `json:"name"        binding:"required"`
-		Description string `json:"description"`
-		PriceCents  int64  `json:"price_cents" binding:"min=0"`
-		Unit        string `json:"unit"        binding:"required"`
-		Available   bool   `json:"available"`
+		Name        string   `json:"name"        binding:"required"`
+		Description string   `json:"description"`
+		PriceCents  int64    `json:"price_cents" binding:"min=0"`
+		Unit        string   `json:"unit"        binding:"required"`
+		Available   bool     `json:"available"`
+		Categories  []string `json:"categories"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		respond.Error(c, domerrors.BadRequest("%s", err.Error()))
 		return
 	}
-	p, err := h.svc.Create(c.Request.Context(), req.Name, req.Description, req.PriceCents, req.Unit, req.Available)
+	p, err := h.svc.Create(c.Request.Context(), req.Name, req.Description, req.PriceCents, req.Unit, req.Available, req.Categories)
 	if err != nil {
 		respond.Error(c, err)
 		return
@@ -109,12 +112,14 @@ func (h *ProductHandler) Update(c *gin.Context) {
 		Description string `json:"description"`
 		PriceCents  int64  `json:"price_cents" binding:"min=0"`
 		Unit        string `json:"unit"        binding:"required"`
+		// Omitted (null) leaves categories unchanged; [] clears them.
+		Categories []string `json:"categories"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		respond.Error(c, domerrors.BadRequest("%s", err.Error()))
 		return
 	}
-	p, err := h.svc.Update(c.Request.Context(), id, req.Name, req.Description, req.PriceCents, req.Unit)
+	p, err := h.svc.Update(c.Request.Context(), id, req.Name, req.Description, req.PriceCents, req.Unit, req.Categories)
 	if err != nil {
 		respond.Error(c, err)
 		return
@@ -231,4 +236,12 @@ func imageExt(contentType string) (string, error) {
 	default:
 		return "", fmt.Errorf("unsupported image content-type: %s", contentType)
 	}
+}
+
+// nonNil ensures JSON encodes an empty array instead of null.
+func nonNil(s []string) []string {
+	if s == nil {
+		return []string{}
+	}
+	return s
 }

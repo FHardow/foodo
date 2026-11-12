@@ -15,6 +15,7 @@ func NewRouter(
 	users *handler.UserHandler,
 	products *handler.ProductHandler,
 	orders *handler.OrderHandler,
+	categories *handler.CategoryHandler,
 	userSvc *user.Service,
 	keycloakURL string,
 	keycloakRealm string,
@@ -55,6 +56,10 @@ func NewRouter(
 		p.PATCH("/:id/availability", ownerOnly, products.SetAvailable)
 		p.DELETE("/:id", ownerOnly, products.Delete)
 		p.POST("/:id/image", ownerOnly, products.UploadImage)
+
+		c := v1.Group("/categories")
+		c.GET("", categories.List)
+		c.DELETE("/:id", ownerOnly, categories.Delete)
 
 		o := v1.Group("/orders")
 		o.GET("", orders.List)

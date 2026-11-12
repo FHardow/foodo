@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/fhardow/foodo/internal/config"
+	"github.com/fhardow/foodo/internal/domain/category"
 	"github.com/fhardow/foodo/internal/domain/order"
 	"github.com/fhardow/foodo/internal/domain/product"
 	"github.com/fhardow/foodo/internal/domain/user"
@@ -44,26 +45,29 @@ func main() {
 	}
 
 	// Repositories
-	userRepo    := postgres.NewUserRepo(db)
+	userRepo := postgres.NewUserRepo(db)
 	productRepo := postgres.NewProductRepo(db)
-	orderRepo   := postgres.NewOrderRepo(db)
+	orderRepo := postgres.NewOrderRepo(db)
+	categoryRepo := postgres.NewCategoryRepo(db)
 
 	// Domain services
-	userSvc    := user.NewService(userRepo)
+	userSvc := user.NewService(userRepo)
 	productSvc := product.NewService(productRepo)
-	orderSvc   := order.NewService(orderRepo, productRepo, userRepo)
+	categorySvc := category.NewService(categoryRepo)
+	orderSvc := order.NewService(orderRepo, productRepo, userRepo)
 	if cfg.TelegramBotToken != "" && cfg.TelegramChatID != "" {
 		orderSvc.WithNotifier(telegram.NewNotifier(cfg.TelegramBotToken, cfg.TelegramChatID))
 		log.Info("telegram order notifications enabled")
 	}
 
 	// HTTP handlers
-	userHandler    := handler.NewUserHandler(userSvc)
+	userHandler := handler.NewUserHandler(userSvc)
 	productHandler := handler.NewProductHandler(productSvc, uploadsDir)
-	orderHandler   := handler.NewOrderHandler(orderSvc)
+	orderHandler := handler.NewOrderHandler(orderSvc)
+	categoryHandler := handler.NewCategoryHandler(categorySvc)
 
-	router := apphttp.NewRouter(userHandler, productHandler, orderHandler, userSvc, cfg.KeycloakURL, cfg.KeycloakRealm, uploadsDir, cfg.CORSOrigin)
-	srv    := apphttp.NewServer(cfg.Port, router, log)
+	router := apphttp.NewRouter(userHandler, productHandler, orderHandler, categoryHandler, userSvc, cfg.KeycloakURL, cfg.KeycloakRealm, uploadsDir, cfg.CORSOrigin)
+	srv := apphttp.NewServer(cfg.Port, router, log)
 
 	// Graceful shutdown
 	stop := make(chan os.Signal, 1)

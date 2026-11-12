@@ -2,6 +2,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { getProduct } from '../api/products'
 import { useBasket } from '../hooks/useBasket'
+import CategoryPill from '../components/CategoryPill'
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8080'
 
@@ -69,6 +70,13 @@ export default function Product() {
           <div>
             <h1 className="text-2xl font-bold text-[#3d2b1a]">{product.name}</h1>
             <span className="text-xs text-[#8a6a50] uppercase tracking-wide">{product.unit}</span>
+            {!!product.categories?.length && (
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {product.categories.map((c) => (
+                  <CategoryPill key={c} category={c} />
+                ))}
+              </div>
+            )}
           </div>
 
           <p className="text-[#5c3d1e] leading-relaxed">{product.description}</p>

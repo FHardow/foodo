@@ -7,6 +7,13 @@ export interface Product {
   unit: string
   available: boolean
   image_url?: string
+  /** Category names; always present from the API, optional for fixtures. */
+  categories?: string[]
+}
+
+export interface Category {
+  id: UUID
+  name: string
 }
 
 export interface OrderItem {
