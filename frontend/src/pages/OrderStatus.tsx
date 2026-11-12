@@ -2,6 +2,7 @@ import { useParams, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { getOrder } from '../api/orders'
 import StatusBadge from '../components/StatusBadge'
+import { Card } from '../components/ui/card'
 import type { Order } from '../types'
 
 const TERMINAL = new Set<Order['status']>(['finished'])
@@ -20,46 +21,45 @@ export default function OrderStatus() {
   })
 
   if (isLoading) {
-    return <div className="animate-pulse bg-white rounded-lg h-48 border border-[#e8ddd0]" />
+    return <Card className="h-48 animate-pulse" />
   }
 
   if (isError) {
     return (
       <div className="text-center py-16">
-        <p className="text-[#8a6a50]">Could not load order. Try again.</p>
+        <p className="text-muted-foreground">Could not load order. Try again.</p>
       </div>
     )
   }
 
   if (!order) {
-    return <p className="text-center py-16 text-[#8a6a50]">Order not found.</p>
+    return <p className="text-center py-16 text-muted-foreground">Order not found.</p>
   }
 
   return (
     <div className="max-w-lg mx-auto">
       <div className="flex items-center gap-3 mb-2">
-        <h1 className="text-2xl font-bold text-[#3d2b1a]">Order</h1>
+        <h1 className="text-2xl font-bold text-foreground">Order</h1>
         <StatusBadge status={order.status} />
       </div>
-      <p className="text-sm text-[#8a6a50] mb-6">
+      <p className="text-sm text-muted-foreground mb-6">
         Placed {new Date(order.created_at).toLocaleDateString()}
       </p>
 
       <ul className="space-y-3 mb-8">
         {order.items.map((item) => (
-          <li
-            key={item.product_id}
-            className="flex justify-between bg-white rounded-lg border border-[#e8ddd0] p-4"
-          >
-            <span className="text-[#3d2b1a]">{item.product_name}</span>
-            <span className="text-[#8a6a50]">
-              {item.unit ? `${item.unit} × ${item.quantity}` : `× ${item.quantity}`}
-            </span>
+          <li key={item.product_id}>
+            <Card className="flex items-center justify-between p-4">
+              <span className="text-foreground">{item.product_name}</span>
+              <span className="text-muted-foreground">
+                {item.unit ? `${item.unit} × ${item.quantity}` : `× ${item.quantity}`}
+              </span>
+            </Card>
           </li>
         ))}
       </ul>
 
-      <Link to="/orders" className="text-[#5c3d1e] text-sm underline">
+      <Link to="/orders" className="text-primary text-sm underline">
         ← Order history
       </Link>
     </div>

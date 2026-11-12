@@ -15,7 +15,13 @@ cp .env.example .env   # fill in DOMAIN, DB_PASSWORD, KEYCLOAK_URL, etc.
 docker compose up -d --build
 ```
 
-Migrations run automatically on first start.
+Migrations are **not** applied automatically — run them manually after the containers are up (see [backend/README.md](backend/README.md#migrations)):
+
+```bash
+cd backend && make migrate-up
+```
+
+`PUSH_ENCRYPTION_KEY` in `.env` is required — the backend refuses to start without it, even if you don't set the `VAPID_*` push notification keys. Generate it with `openssl rand -base64 32`.
 
 > **Keycloak** must be running separately before starting the app. Create a `foodo` realm, set `KEYCLOAK_URL` in `.env`, and deploy the login theme from [`keycloak-theme/`](keycloak-theme/README.md).
 

@@ -10,6 +10,7 @@ services:
         VITE_KEYCLOAK_URL: ${VITE_KEYCLOAK_URL}
         VITE_KEYCLOAK_REALM: ${KEYCLOAK_REALM:-foodo}
         VITE_KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID:-foodo-frontend}
+        VITE_VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
     labels:
       - traefik.enable=true
       - traefik.http.routers.frontend.rule=Host(`foodo.${DOMAIN}`)
@@ -34,6 +35,12 @@ services:
       DB_NAME: ${DB_NAME:-foodo}
       KEYCLOAK_URL: ${KEYCLOAK_URL}
       KEYCLOAK_REALM: ${KEYCLOAK_REALM:-foodo}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
+      VAPID_SUBJECT: ${VAPID_SUBJECT:-}
+      PUSH_ENCRYPTION_KEY: ${PUSH_ENCRYPTION_KEY}
     labels:
       - traefik.enable=true
       - traefik.http.routers.backend.rule=Host(`foodo.${DOMAIN}`) && PathPrefix(`/api`)
@@ -47,18 +54,38 @@ services:
       - traefik.http.routers.uploads.service=backend
       - traefik.http.services.backend.loadbalancer.server.port=8080
     volumes:
-      - uploads:/app/uploads
+      - /home/keycloak/foodo/uploads:/app/uploads
     networks:
       - traefik-public
       - internal
     depends_on:
       postgres:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     restart: unless-stopped
+
+  # ── Migrations ─────────────────────────────────────────────────────────────
+  migrate:
+    image: migrate/migrate:v4.18.1
+    volumes:
+      - ./backend/migrations:/migrations
+    command:
+      - -path=/migrations
+      - -database=postgres://${DB_USER:-foodo}:${DB_PASSWORD}@postgres:5432/${DB_NAME:-foodo}?sslmode=disable
+      - up
+    networks:
+      - internal
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
 
   # ── PostgreSQL ─────────────────────────────────────────────────────────────
   postgres:
     image: postgres:18-alpine
+    ports: 
+     - 5501:5432
     environment:
       POSTGRES_USER: ${DB_USER:-foodo}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
@@ -81,4 +108,3 @@ networks:
 
 volumes:
   postgres_data:
-  uploads:

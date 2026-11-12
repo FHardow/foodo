@@ -34,3 +34,21 @@ func RequireOwner() gin.HandlerFunc {
 		c.Abort()
 	}
 }
+
+// HasRole reports whether the authenticated caller's JWT includes the given realm role.
+func HasRole(c *gin.Context, role string) bool {
+	raw, exists := c.Get(RolesKey)
+	if !exists {
+		return false
+	}
+	roles, ok := raw.([]string)
+	if !ok {
+		return false
+	}
+	for _, r := range roles {
+		if r == role {
+			return true
+		}
+	}
+	return false
+}

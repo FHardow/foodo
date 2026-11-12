@@ -3,7 +3,9 @@ package order_test
 import (
 	"context"
 	"errors"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/fhardow/foodo/internal/domain/order"
 	"github.com/fhardow/foodo/internal/domain/product"
@@ -353,4 +355,154 @@ func TestOrderService_Finish_NotOngoing(t *testing.T) {
 	_, err := svc.Finish(context.Background(), o.ID())
 	require.Error(t, err)
 	assert.True(t, domerrors.Is(err, domerrors.ErrBadRequest))
+}
+
+// ---------------------------------------------------------------------------
+// Customer push notifications
+// ---------------------------------------------------------------------------
+
+type fakeCustomerNotifier struct {
+	mu       sync.Mutex
+	accepted []order.ID
+	started  []order.ID
+	finished []order.ID
+}
+
+func (f *fakeCustomerNotifier) OrderAccepted(o *order.Order) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.accepted = append(f.accepted, o.ID())
+}
+
+func (f *fakeCustomerNotifier) OrderStarted(o *order.Order) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.started = append(f.started, o.ID())
+}
+
+func (f *fakeCustomerNotifier) OrderFinished(o *order.Order) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.finished = append(f.finished, o.ID())
+}
+
+func (f *fakeCustomerNotifier) acceptedCount() int {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return len(f.accepted)
+}
+
+func (f *fakeCustomerNotifier) startedCount() int {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return len(f.started)
+}
+
+func (f *fakeCustomerNotifier) finishedCount() int {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return len(f.finished)
+}
+
+// progressToOngoing drives a fresh order through Confirm/Accept/StartProgress via the service.
+func progressToOngoing(t *testing.T, svc *order.Service, uRepo *mock.UserRepo, pRepo *mock.ProductRepo) *order.Order {
+	t.Helper()
+	o := createOrder(t, svc, uRepo)
+	pid := seededProduct(t, pRepo, true)
+	_, err := svc.AddItem(context.Background(), o.ID(), pid, 1)
+	require.NoError(t, err)
+	_, err = svc.Confirm(context.Background(), o.ID())
+	require.NoError(t, err)
+	_, err = svc.Accept(context.Background(), o.ID())
+	require.NoError(t, err)
+	_, err = svc.StartProgress(context.Background(), o.ID())
+	require.NoError(t, err)
+	return o
+}
+
+func TestOrderService_Accept_NotifiesCustomer(t *testing.T) {
+	oRepo := mock.NewOrderRepo()
+	pRepo := mock.NewProductRepo()
+	uRepo := mock.NewUserRepo()
+	svc := newOrderService(oRepo, pRepo, uRepo)
+	fake := &fakeCustomerNotifier{}
+	svc.WithCustomerNotifier(fake)
+
+	o := createOrder(t, svc, uRepo)
+	pid := seededProduct(t, pRepo, true)
+	_, err := svc.AddItem(context.Background(), o.ID(), pid, 1)
+	require.NoError(t, err)
+	_, err = svc.Confirm(context.Background(), o.ID())
+	require.NoError(t, err)
+
+	_, err = svc.Accept(context.Background(), o.ID())
+	require.NoError(t, err)
+
+	require.Eventually(t, func() bool { return fake.acceptedCount() == 1 }, time.Second, 10*time.Millisecond)
+}
+
+func TestOrderService_StartProgress_NotifiesCustomer(t *testing.T) {
+	oRepo := mock.NewOrderRepo()
+	pRepo := mock.NewProductRepo()
+	uRepo := mock.NewUserRepo()
+	svc := newOrderService(oRepo, pRepo, uRepo)
+	fake := &fakeCustomerNotifier{}
+	svc.WithCustomerNotifier(fake)
+
+	o := createOrder(t, svc, uRepo)
+	pid := seededProduct(t, pRepo, true)
+	_, err := svc.AddItem(context.Background(), o.ID(), pid, 1)
+	require.NoError(t, err)
+	_, err = svc.Confirm(context.Background(), o.ID())
+	require.NoError(t, err)
+	_, err = svc.Accept(context.Background(), o.ID())
+	require.NoError(t, err)
+
+	_, err = svc.StartProgress(context.Background(), o.ID())
+	require.NoError(t, err)
+
+	require.Eventually(t, func() bool { return fake.startedCount() == 1 }, time.Second, 10*time.Millisecond)
+}
+
+func TestOrderService_Finish_NotifiesCustomer(t *testing.T) {
+	oRepo := mock.NewOrderRepo()
+	pRepo := mock.NewProductRepo()
+	uRepo := mock.NewUserRepo()
+	svc := newOrderService(oRepo, pRepo, uRepo)
+	fake := &fakeCustomerNotifier{}
+	svc.WithCustomerNotifier(fake)
+
+	o := progressToOngoing(t, svc, uRepo, pRepo)
+
+	_, err := svc.Finish(context.Background(), o.ID())
+	require.NoError(t, err)
+
+	require.Eventually(t, func() bool { return fake.finishedCount() == 1 }, time.Second, 10*time.Millisecond)
+}
+
+func TestOrderService_UndoTransitions_DoNotNotifyCustomer(t *testing.T) {
+	oRepo := mock.NewOrderRepo()
+	pRepo := mock.NewProductRepo()
+	uRepo := mock.NewUserRepo()
+	svc := newOrderService(oRepo, pRepo, uRepo)
+	fake := &fakeCustomerNotifier{}
+	svc.WithCustomerNotifier(fake)
+
+	o := progressToOngoing(t, svc, uRepo, pRepo)
+	_, err := svc.Finish(context.Background(), o.ID())
+	require.NoError(t, err)
+	require.Eventually(t, func() bool { return fake.finishedCount() == 1 }, time.Second, 10*time.Millisecond)
+
+	_, err = svc.Unfinish(context.Background(), o.ID())
+	require.NoError(t, err)
+	_, err = svc.StopProgress(context.Background(), o.ID())
+	require.NoError(t, err)
+	_, err = svc.Unaccept(context.Background(), o.ID())
+	require.NoError(t, err)
+
+	// Give any stray goroutine a chance to fire before asserting silence.
+	time.Sleep(50 * time.Millisecond)
+	assert.Equal(t, 1, fake.acceptedCount(), "unaccept must not fire a second accepted notification")
+	assert.Equal(t, 1, fake.startedCount(), "stop must not fire a second started notification")
+	assert.Equal(t, 1, fake.finishedCount(), "unfinish must not fire a second finished notification")
 }

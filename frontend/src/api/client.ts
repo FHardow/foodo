@@ -16,7 +16,8 @@ export async function apiFetch<T = unknown>(path: string, options?: RequestInit)
   if (!res.ok) {
     throw new Error(`${res.status} ${res.statusText}`)
   }
-  // DELETE endpoints return 204 with an empty body.
-  if (res.status === 204) return undefined as T
+  if (res.status === 204 || res.headers.get('content-length') === '0') {
+    return undefined as T
+  }
   return res.json() as Promise<T>
 }

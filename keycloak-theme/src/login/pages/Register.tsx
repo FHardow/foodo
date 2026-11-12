@@ -15,7 +15,9 @@ const inputClass =
 const labelClass = "block text-sm font-semibold text-[#5c3d1e] mb-1";
 
 export default function Register({ kcContext }: Props) {
-    const { url, messagesPerField, message } = kcContext;
+    const { url, messagesPerField, message, profile } = kcContext;
+
+    const usernameAttribute = profile.attributesByName["username"];
 
     return (
         <Template>
@@ -62,6 +64,27 @@ export default function Register({ kcContext }: Props) {
                         )}
                     </div>
                 </div>
+
+                {usernameAttribute && (
+                    <div>
+                        <label htmlFor="username" className={labelClass}>
+                            Username
+                        </label>
+                        <input
+                            id="username"
+                            name="username"
+                            type="text"
+                            defaultValue={usernameAttribute.value ?? ""}
+                            autoComplete="username"
+                            className={inputClass}
+                        />
+                        {messagesPerField.existsError("username") && (
+                            <p className="text-xs text-red-600 mt-1">
+                                {messagesPerField.getFirstError("username")}
+                            </p>
+                        )}
+                    </div>
+                )}
 
                 <div>
                     <label htmlFor="email" className={labelClass}>

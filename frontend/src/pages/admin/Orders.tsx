@@ -9,14 +9,19 @@ import {
   type DragEndEvent,
   type DragStartEvent,
   PointerSensor,
+  TouchSensor,
   useSensor,
   useSensors,
 } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
 import { useState, useEffect } from 'react'
+import type { CSSProperties } from 'react'
 import keycloak from '../../auth/keycloak'
-import { getAllOrders, acceptOrder, startOrder, finishOrder, unacceptOrder, stopOrder, unfinishOrder } from '../../api/orders'
+import { getAllOrders, acceptOrder, startOrder, finishOrder, unacceptOrder, stopOrder, unfinishOrder, archiveFinishedOrders } from '../../api/orders'
 import type { Order } from '../../types'
+import { Card } from '../../components/ui/card'
+import { Badge } from '../../components/ui/badge'
+import { Button } from '../../components/ui/button'
 
 type KanbanStatus = 'created' | 'accepted' | 'ongoing' | 'finished'
 
@@ -34,13 +39,14 @@ const STATUS_ORDER: KanbanStatus[] = ['created', 'accepted', 'ongoing', 'finishe
 function OrderCard({ order, isDragging }: { order: Order; isDragging?: boolean }) {
   const { attributes, listeners, setNodeRef, transform } = useDraggable({ id: order.id })
 
-  const style = {
+  const style: CSSProperties = {
     transform: CSS.Translate.toString(transform),
     opacity: isDragging ? 0.4 : 1,
+    touchAction: 'none',
   }
 
   return (
-    <div
+    <Card
       ref={setNodeRef}
       style={style}
       {...listeners}
@@ -48,27 +54,27 @@ function OrderCard({ order, isDragging }: { order: Order; isDragging?: boolean }
       data-testid="order-card"
       data-order-id={order.id}
       data-order-status={order.status}
-      className="bg-white rounded-lg border border-[#e8ddd0] p-3 cursor-grab active:cursor-grabbing select-none shadow-sm hover:border-[#5c3d1e] transition-colors"
+      className="p-3 cursor-grab active:cursor-grabbing select-none hover:border-primary transition-colors"
     >
-      <CardContent order={order} />
-    </div>
+      <OrderCardBody order={order} />
+    </Card>
   )
 }
 
-function CardContent({ order }: { order: Order }) {
+function OrderCardBody({ order }: { order: Order }) {
   return (
     <>
       <div className="flex items-start justify-between gap-2 mb-1">
-        <span className="text-xs font-medium text-[#5c3d1e] truncate">
+        <span className="text-xs font-medium text-primary truncate">
           {order.user_name ?? 'Unknown customer'}
         </span>
-        <span className="text-xs text-[#8a6a50] whitespace-nowrap">
+        <span className="text-xs text-muted-foreground whitespace-nowrap">
           {new Date(order.created_at).toLocaleDateString()}
         </span>
       </div>
       <ul className="mt-1 space-y-0.5">
         {order.items.map((item) => (
-          <li key={item.product_id} className="text-xs text-[#3d2b1a]">
+          <li key={item.product_id} className="text-xs text-foreground">
             {item.product_name}
             {item.unit ? ` · ${item.unit} × ${item.quantity}` : ` × ${item.quantity}`}
           </li>
@@ -85,11 +91,15 @@ function KanbanColumn({
   label,
   orders,
   activeId,
+  onArchiveFinished,
+  archiving,
 }: {
   status: KanbanStatus
   label: string
   orders: Order[]
   activeId: string | null
+  onArchiveFinished?: () => void
+  archiving?: boolean
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: status })
 
@@ -99,21 +109,32 @@ function KanbanColumn({
       data-testid="kanban-column"
       data-column-status={status}
       className={`flex flex-col min-h-[200px] rounded-xl p-3 transition-colors ${
-        isOver ? 'bg-[#e8ddd0] ring-2 ring-[#5c3d1e]' : 'bg-[#f0e8de]'
+        isOver ? 'bg-accent ring-2 ring-primary' : 'bg-secondary'
       }`}
     >
       <div className="flex items-center justify-between mb-3">
-        <h2 className="font-semibold text-sm text-[#3d2b1a]">{label}</h2>
-        <span data-testid="column-count" className="text-xs bg-white text-[#8a6a50] rounded-full px-2 py-0.5">
+        <h2 className="font-semibold text-sm text-foreground">{label}</h2>
+        <Badge data-testid="column-count" variant="secondary">
           {orders.length}
-        </span>
+        </Badge>
       </div>
+      {status === 'finished' && (
+        <Button
+          variant="outline"
+          size="sm"
+          className="mb-3 text-xs h-7"
+          disabled={archiving || orders.length === 0}
+          onClick={onArchiveFinished}
+        >
+          {archiving ? 'Archiving…' : 'Archive All'}
+        </Button>
+      )}
       <div className="flex flex-col gap-2 flex-1">
         {orders.map((order) => (
           <OrderCard key={order.id} order={order} isDragging={order.id === activeId} />
         ))}
         {orders.length === 0 && (
-          <p className="text-xs text-[#8a6a50] text-center mt-4">No orders</p>
+          <p className="text-xs text-muted-foreground text-center mt-4">No orders</p>
         )}
       </div>
     </div>
@@ -143,9 +164,18 @@ export default function AdminOrders() {
   const unaccept = useMutation({ mutationFn: unacceptOrder, onSuccess: invalidate, onError: () => toast.error('Failed to move order back') })
   const stop     = useMutation({ mutationFn: stopOrder,     onSuccess: invalidate, onError: () => toast.error('Failed to move order back') })
   const unfinish = useMutation({ mutationFn: unfinishOrder, onSuccess: invalidate, onError: () => toast.error('Failed to move order back') })
+  const archive  = useMutation({
+    mutationFn: archiveFinishedOrders,
+    onSuccess: ({ archived_count }) => {
+      invalidate()
+      toast.success(`Archived ${archived_count} order${archived_count === 1 ? '' : 's'}`)
+    },
+    onError: () => toast.error('Failed to archive orders'),
+  })
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } }),
   )
 
   useEffect(() => {
@@ -156,7 +186,7 @@ export default function AdminOrders() {
 
   // Only show non-pending orders in the kanban
   const kanbanOrders = allOrders.filter(
-    (o): o is Order & { status: KanbanStatus } => o.status !== 'pending'
+    (o): o is Order & { status: KanbanStatus } => STATUS_ORDER.includes(o.status as KanbanStatus)
   )
 
   const columnOrders = (status: KanbanStatus) =>
@@ -194,21 +224,21 @@ export default function AdminOrders() {
   }
 
   if (isLoading) {
-    return <div data-testid="loading-skeleton" className="animate-pulse bg-white rounded-lg h-48 border border-[#e8ddd0]" />
+    return <div data-testid="loading-skeleton" className="animate-pulse bg-white rounded-lg h-48 border border-border" />
   }
 
   if (isError) {
     return (
       <div className="text-center py-16">
-        <p className="text-[#8a6a50]">Could not load orders. Try again.</p>
+        <p className="text-muted-foreground">Could not load orders. Try again.</p>
       </div>
     )
   }
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-[#3d2b1a] mb-6">Order Board</h1>
-      <p className="text-sm text-[#8a6a50] mb-6">
+      <h1 className="text-2xl font-bold text-foreground mb-6">Order Board</h1>
+      <p className="text-sm text-muted-foreground mb-6">
         Drag orders left or right to change their status.
       </p>
 
@@ -221,15 +251,17 @@ export default function AdminOrders() {
               label={label}
               orders={columnOrders(status)}
               activeId={activeId}
+              onArchiveFinished={() => archive.mutate()}
+              archiving={archive.isPending}
             />
           ))}
         </div>
 
         <DragOverlay>
           {activeOrder && (
-            <div className="bg-white rounded-lg border-2 border-[#5c3d1e] p-3 shadow-lg rotate-1 w-64">
-              <CardContent order={activeOrder} />
-            </div>
+            <Card className="border-2 border-primary p-3 shadow-lg rotate-1 w-64">
+              <OrderCardBody order={activeOrder} />
+            </Card>
           )}
         </DragOverlay>
       </DndContext>

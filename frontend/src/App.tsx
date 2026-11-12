@@ -1,6 +1,8 @@
+import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Toaster } from 'sonner'
+import { initPush } from './push/subscribe'
 import Nav from './components/Nav'
 import Store from './pages/Store'
 import Basket from './pages/Basket'
@@ -20,10 +22,14 @@ const queryClient = new QueryClient({
 })
 
 export default function App() {
+  useEffect(() => {
+    initPush().catch(() => {})
+  }, [])
+
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <div className="min-h-screen bg-[#faf7f2]">
+        <div className="min-h-screen bg-background">
           <Nav />
           <main className="max-w-5xl mx-auto px-4 py-6">
             <Routes>
