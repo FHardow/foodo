@@ -54,6 +54,7 @@ func newTestDB(t *testing.T) *gorm.DB {
 
 	err = db.AutoMigrate(
 		&models.User{},
+		&models.Category{},
 		&models.Product{},
 		&models.Order{},
 		&models.OrderItem{},

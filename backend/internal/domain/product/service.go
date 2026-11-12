@@ -10,9 +10,13 @@ func NewService(repo Repository) *Service {
 	return &Service{repo: repo}
 }
 
-func (s *Service) Create(ctx context.Context, name, description string, priceCents int64, unit string, available bool) (*Product, error) {
+// Create creates a product. categories may be nil for none.
+func (s *Service) Create(ctx context.Context, name, description string, priceCents int64, unit string, available bool, categories []string) (*Product, error) {
 	p, err := New(name, description, priceCents, unit, available)
 	if err != nil {
+		return nil, err
+	}
+	if err := p.SetCategories(categories); err != nil {
 		return nil, err
 	}
 	if err := s.repo.Save(ctx, p); err != nil {
@@ -29,13 +33,20 @@ func (s *Service) List(ctx context.Context, availableOnly bool) ([]*Product, err
 	return s.repo.List(ctx, availableOnly)
 }
 
-func (s *Service) Update(ctx context.Context, id ID, name, description string, priceCents int64, unit string) (*Product, error) {
+// Update updates a product. A nil categories slice leaves the product's
+// categories unchanged; an empty non-nil slice removes them all.
+func (s *Service) Update(ctx context.Context, id ID, name, description string, priceCents int64, unit string, categories []string) (*Product, error) {
 	p, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
 	if err := p.Update(name, description, priceCents, unit); err != nil {
 		return nil, err
+	}
+	if categories != nil {
+		if err := p.SetCategories(categories); err != nil {
+			return nil, err
+		}
 	}
 	if err := s.repo.Save(ctx, p); err != nil {
 		return nil, err

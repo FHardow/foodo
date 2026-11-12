@@ -6,8 +6,12 @@ package mock
 
 import (
 	"context"
+	"sort"
+	"strings"
 	"sync"
+	"time"
 
+	"github.com/fhardow/foodo/internal/domain/category"
 	"github.com/fhardow/foodo/internal/domain/order"
 	"github.com/fhardow/foodo/internal/domain/product"
 	"github.com/fhardow/foodo/internal/domain/push"
@@ -249,6 +253,63 @@ func (r *OrderRepo) Delete(_ context.Context, id order.ID) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	delete(r.orders, id.String())
+	return nil
+}
+
+// ---------------------------------------------------------------------------
+// CategoryRepo
+// ---------------------------------------------------------------------------
+
+// CategoryRepo is an in-memory implementation of category.Repository.
+type CategoryRepo struct {
+	mu sync.RWMutex
+
+	ErrList   error
+	ErrDelete error
+
+	categories map[string]*category.Category
+}
+
+// NewCategoryRepo returns a ready-to-use CategoryRepo.
+func NewCategoryRepo() *CategoryRepo {
+	return &CategoryRepo{categories: make(map[string]*category.Category)}
+}
+
+// Seed adds a category with the given name and returns it.
+func (r *CategoryRepo) Seed(name string) *category.Category {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	c := category.Reconstitute(uuid.New(), name, time.Now().UTC())
+	r.categories[c.ID().String()] = c
+	return c
+}
+
+func (r *CategoryRepo) List(_ context.Context) ([]*category.Category, error) {
+	if r.ErrList != nil {
+		return nil, r.ErrList
+	}
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	out := make([]*category.Category, 0, len(r.categories))
+	for _, c := range r.categories {
+		out = append(out, c)
+	}
+	sort.Slice(out, func(i, j int) bool {
+		return strings.ToLower(out[i].Name()) < strings.ToLower(out[j].Name())
+	})
+	return out, nil
+}
+
+func (r *CategoryRepo) Delete(_ context.Context, id category.ID) error {
+	if r.ErrDelete != nil {
+		return r.ErrDelete
+	}
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if _, ok := r.categories[id.String()]; !ok {
+		return domerrors.NotFound("category %s not found", id)
+	}
+	delete(r.categories, id.String())
 	return nil
 }
 

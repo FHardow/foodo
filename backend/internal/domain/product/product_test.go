@@ -1,6 +1,8 @@
 package product_test
 
 import (
+	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -139,7 +141,7 @@ func TestReconstitute_PreservesAllFields(t *testing.T) {
 	created := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
 	updated := time.Date(2024, 6, 1, 0, 0, 0, 0, time.UTC)
 
-	p := product.Reconstitute(id, "Rye", "dark", 300, "loaf", false, "", created, updated)
+	p := product.Reconstitute(id, "Rye", "dark", 300, "loaf", false, "", nil, created, updated)
 
 	assert.Equal(t, id, p.ID())
 	assert.Equal(t, "Rye", p.Name())
@@ -158,4 +160,48 @@ func TestProduct_SetImageURL(t *testing.T) {
 
 	p.SetImageURL("/uploads/some-uuid.jpg")
 	assert.Equal(t, "/uploads/some-uuid.jpg", p.ImageURL())
+}
+
+// ---------------------------------------------------------------------------
+// SetCategories
+// ---------------------------------------------------------------------------
+
+func TestSetCategories_NormalisesAndDedupes(t *testing.T) {
+	p, _ := product.New("Sourdough", "", 450, "loaf", true)
+	err := p.SetCategories([]string{"  Bakery ", "bakery", "", "Whole   grain", "BAKERY"})
+	require.NoError(t, err)
+	assert.Equal(t, []string{"Bakery", "Whole grain"}, p.Categories())
+}
+
+func TestSetCategories_EmptyClears(t *testing.T) {
+	p, _ := product.New("Sourdough", "", 450, "loaf", true)
+	require.NoError(t, p.SetCategories([]string{"Bakery"}))
+	require.NoError(t, p.SetCategories([]string{}))
+	assert.Empty(t, p.Categories())
+}
+
+func TestSetCategories_TooLong(t *testing.T) {
+	p, _ := product.New("Sourdough", "", 450, "loaf", true)
+	err := p.SetCategories([]string{strings.Repeat("x", product.MaxCategoryNameLength+1)})
+	require.Error(t, err)
+	assert.True(t, domerrors.Is(err, domerrors.ErrBadRequest))
+}
+
+func TestSetCategories_TooMany(t *testing.T) {
+	p, _ := product.New("Sourdough", "", 450, "loaf", true)
+	names := make([]string, product.MaxCategories+1)
+	for i := range names {
+		names[i] = fmt.Sprintf("cat-%d", i)
+	}
+	err := p.SetCategories(names)
+	require.Error(t, err)
+	assert.True(t, domerrors.Is(err, domerrors.ErrBadRequest))
+}
+
+func TestCategories_ReturnsCopy(t *testing.T) {
+	p, _ := product.New("Sourdough", "", 450, "loaf", true)
+	require.NoError(t, p.SetCategories([]string{"Bakery"}))
+	c := p.Categories()
+	c[0] = "mutated"
+	assert.Equal(t, []string{"Bakery"}, p.Categories())
 }

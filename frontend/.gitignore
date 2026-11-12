@@ -16,6 +16,9 @@ dist-ssr
 playwright-report/
 test-results/
 
+# Storybook
+storybook-static/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

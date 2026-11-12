@@ -11,6 +11,7 @@ import (
 	domerrors "github.com/fhardow/foodo/pkg/errors"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type orderRepo struct{ db *gorm.DB }
@@ -70,7 +71,9 @@ func (r *orderRepo) Save(ctx context.Context, o *order.Order) error {
 
 	// Use a transaction to replace items atomically.
 	return db.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Save(&m).Error; err != nil {
+		// Items are written explicitly below. Letting GORM cascade them here
+		// would insert them before a new order row exists (FK violation).
+		if err := tx.Omit(clause.Associations).Save(&m).Error; err != nil {
 			return err
 		}
 		// Delete existing items and re-insert to handle removals cleanly.

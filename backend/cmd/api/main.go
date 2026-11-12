@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/fhardow/foodo/internal/config"
+	"github.com/fhardow/foodo/internal/domain/category"
 	"github.com/fhardow/foodo/internal/domain/order"
 	"github.com/fhardow/foodo/internal/domain/product"
 	"github.com/fhardow/foodo/internal/domain/push"
@@ -46,9 +47,10 @@ func main() {
 	}
 
 	// Repositories
-	userRepo    := postgres.NewUserRepo(db)
+	userRepo := postgres.NewUserRepo(db)
 	productRepo := postgres.NewProductRepo(db)
-	orderRepo   := postgres.NewOrderRepo(db)
+	orderRepo := postgres.NewOrderRepo(db)
+	categoryRepo := postgres.NewCategoryRepo(db)
 	pushRepo, err := postgres.NewPushSubscriptionRepo(db, cfg.PushEncryptionKey)
 	if err != nil {
 		log.Error("failed to init push subscription repo", "err", err)
@@ -56,8 +58,9 @@ func main() {
 	}
 
 	// Domain services
-	userSvc    := user.NewService(userRepo)
+	userSvc := user.NewService(userRepo)
 	productSvc := product.NewService(productRepo)
+	categorySvc := category.NewService(categoryRepo)
 	orderSvc   := order.NewService(orderRepo, productRepo, userRepo)
 	pushSvc    := push.NewService(pushRepo)
 	if cfg.TelegramBotToken != "" && cfg.TelegramChatID != "" {
@@ -77,13 +80,14 @@ func main() {
 	}
 
 	// HTTP handlers
-	userHandler    := handler.NewUserHandler(userSvc)
+	userHandler := handler.NewUserHandler(userSvc)
 	productHandler := handler.NewProductHandler(productSvc, uploadsDir)
-	orderHandler   := handler.NewOrderHandler(orderSvc)
-	pushHandler    := handler.NewPushHandler(pushSvc)
+	orderHandler := handler.NewOrderHandler(orderSvc)
+	pushHandler := handler.NewPushHandler(pushSvc)
+	categoryHandler := handler.NewCategoryHandler(categorySvc)
 
-	router := apphttp.NewRouter(userHandler, productHandler, orderHandler, pushHandler, userSvc, cfg.KeycloakURL, cfg.KeycloakRealm, uploadsDir, cfg.CORSOrigin)
-	srv    := apphttp.NewServer(cfg.Port, router, log)
+	router := apphttp.NewRouter(userHandler, productHandler, orderHandler, pushHandler, categoryHandler, userSvc, cfg.KeycloakURL, cfg.KeycloakRealm, uploadsDir, cfg.CORSOrigin)
+	srv := apphttp.NewServer(cfg.Port, router, log)
 
 	// Graceful shutdown
 	stop := make(chan os.Signal, 1)

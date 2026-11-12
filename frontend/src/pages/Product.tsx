@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { ArrowLeft } from 'lucide-react'
 import { getProduct } from '../api/products'
 import { useBasket } from '../hooks/useBasket'
+import CategoryPill from '../components/CategoryPill'
 import { Card } from '../components/ui/card'
 import { Button } from '../components/ui/button'
 
@@ -72,6 +73,13 @@ export default function Product() {
           <div>
             <h1 className="text-2xl font-bold text-foreground">{product.name}</h1>
             <span className="text-xs text-muted-foreground uppercase tracking-wide">{product.unit}</span>
+            {!!product.categories?.length && (
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {product.categories.map((c) => (
+                  <CategoryPill key={c} category={c} />
+                ))}
+              </div>
+            )}
           </div>
 
           <p className="text-primary leading-relaxed">{product.description}</p>
